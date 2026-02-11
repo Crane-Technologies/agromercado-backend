@@ -27,7 +27,7 @@ export const dbProvider: Provider = {
     const config: DatabaseConfig = {
       connectionString,
       max: Number(process.env.MAX_POOL_SIZE ?? 10),
-      ssl: { rejectUnauthorized: false },
+      ssl: false,
       logLevel: 2,
     };
 
