@@ -1,0 +1,71 @@
+@baseUrl = http://localhost:3000
+
+###############################################
+# PRUEBAS DE EXCEPCIONES
+###############################################
+
+### Verificar que el módulo auth funciona
+GET {{baseUrl}}/auth
+
+### Ver tipos de excepciones disponibles
+GET {{baseUrl}}/auth/test-exception/help
+
+### Test Invalid Credentials
+GET {{baseUrl}}/auth/test-exception/invalid-credentials
+
+### Test User Exists
+GET {{baseUrl}}/auth/test-exception/user-exists
+
+### Test Token Expired
+GET {{baseUrl}}/auth/test-exception/token-expired
+
+### Test Invalid Token
+GET {{baseUrl}}/auth/test-exception/invalid-token
+
+### Test Token Revoked
+GET {{baseUrl}}/auth/test-exception/token-revoked
+
+### Test User Not Found
+GET {{baseUrl}}/auth/test-exception/user-not-found
+
+### Test Database Error
+GET {{baseUrl}}/auth/test-exception/database
+
+### Test Token Not Found
+GET {{baseUrl}}/auth/test-exception/token-not-found
+
+###############################################
+# PRUEBAS DE CONFIGURACIÓN JWT
+###############################################
+
+### Test: Generar y verificar JWT
+GET {{baseUrl}}/auth/test-jwt
+
+###############################################
+# PRUEBAS DE USERS SERVICE
+###############################################
+
+### Test 1: Verificar si email existe (debería ser false)
+GET {{baseUrl}}/users/check/email/test@example.com
+
+### Test 2: Crear usuario de prueba
+POST {{baseUrl}}/users/test-create
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "phone": "+584121234567",
+  "password_hash": "$2b$10$hashedpassword123",
+  "document_type": "V",
+  "document_number": 12345678,
+  "township_id": 1
+}
+
+### Test 3: Buscar usuario por email
+GET {{baseUrl}}/users/email/testuser@example.com
+
+### Test 4: Verificar email existe (ahora debería ser true)
+GET {{baseUrl}}/users/check/email/testuser@example.com
+
+### Test 5: Buscar por ID (reemplaza con el UUID que te devuelva el test 2)
+GET {{baseUrl}}/users/fd8b69b2-e6d0-40bd-a312-01dfe76bac43
