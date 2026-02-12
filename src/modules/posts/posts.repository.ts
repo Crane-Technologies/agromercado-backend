@@ -1,12 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
 import Database from '@crane-technologies/database';
+import { DATABASE } from '../database/database.provider';
 import { queries } from '../database/queries';
 import { CreateLivestockPostDto } from './dto/request/create-livestock-post.dto';
 
 @Injectable()
-export class PostsRepository {
+export class LivestockPostsRepository {
   constructor(
-    @Inject('DATABASE_CONNECTION')
+    @Inject(DATABASE)
     private readonly db: Database,
   ) {}
 

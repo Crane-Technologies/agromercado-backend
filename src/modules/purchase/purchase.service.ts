@@ -3,13 +3,12 @@ import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 
 import Database from '@crane-technologies/database';
+import { DATABASE } from '../database/database.provider';
 import { queries } from '../database/queries';
 
 @Injectable()
 export class PurchaseService {
-  constructor(
-    @Inject('DATABASE_CONNECTION') private readonly database: Database,
-  ) {}
+  constructor(@Inject(DATABASE) private readonly database: Database) {}
 
   createPurchaseRequest(createPurchaseDto: CreatePurchaseDto) {
     return 'This action adds a new purchase';

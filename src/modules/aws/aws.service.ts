@@ -14,6 +14,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 import Database from '@crane-technologies/database';
+import { DATABASE } from '../database/database.provider';
 import { queries } from '../database/queries';
 
 import { ConfigService } from '@nestjs/config';
@@ -37,7 +38,7 @@ export class AwsService {
   private readonly s3Region: string;
 
   constructor(
-    @Inject('DATABASE_CONNECTION') private readonly db: Database,
+    @Inject(DATABASE) private readonly db: Database,
     private readonly configService: ConfigService,
   ) {
     const bucket = this.configService.get<string>('AWS_S3_BUCKET_NAME');

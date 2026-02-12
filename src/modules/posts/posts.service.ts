@@ -2,14 +2,14 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { UploadLivestockPostDto, UpdateLivestockPostDto } from './dto/request';
 import { UploadLivestockPostResponseDto } from './dto/response';
 
-import { PostsRepository } from './posts.repository';
+import { LivestockPostsRepository } from './posts.repository';
 
 import { AwsService } from '../aws/aws.service';
 
 @Injectable()
 export class LivestockPostsService {
   constructor(
-    private readonly postsRepository: PostsRepository,
+    private readonly postsRepository: LivestockPostsRepository,
     private readonly awsService: AwsService,
   ) {}
 
