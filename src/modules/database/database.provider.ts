@@ -16,7 +16,8 @@ let db: Database | null = null;
 export const dbProvider: Provider = {
   provide: DATABASE,
   useFactory: () => {
-    const connectionString = process.env.DB_CONNECTION ?? process.env.DATABASE_URL;
+    const connectionString =
+      process.env.DB_CONNECTION ?? process.env.DATABASE_URL;
 
     if (!connectionString) {
       throw new Error(

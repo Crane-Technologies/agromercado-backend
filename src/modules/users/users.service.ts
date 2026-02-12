@@ -2,9 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DATABASE } from '../database/database.provider';
 import Database from '@crane-technologies/database';
 import { queries } from '../database/queries';
-import { 
-  UserNotFoundException, 
-  DatabaseException 
+import {
+  UserNotFoundException,
+  DatabaseException,
 } from '../auth/exceptions/auth.exceptions';
 
 export interface User {
@@ -64,7 +64,7 @@ export class UsersService {
   }): Promise<User> {
     try {
       const roleId = userData.role_id || 1;
-      
+
       const result = await this.db.query(queries.users.create, [
         userData.email,
         userData.phone,
@@ -74,7 +74,7 @@ export class UsersService {
         userData.township_id,
         roleId,
       ]);
-      
+
       return result.rows[0] as User;
     } catch (error: any) {
       // LOG TEMPORAL para ver el error real
@@ -82,7 +82,7 @@ export class UsersService {
       console.error('❌ Error code:', error.code);
       console.error('❌ Error detail:', error.detail);
       console.error('❌ Error message:', error.message);
-      
+
       if (error.code === '23505') {
         if (error.constraint?.includes('email')) {
           throw new DatabaseException('Email already exists');
@@ -94,7 +94,7 @@ export class UsersService {
           throw new DatabaseException('Document number already exists');
         }
       }
-      
+
       throw new DatabaseException(`create user: ${error.message}`);
     }
   }
@@ -119,11 +119,11 @@ export class UsersService {
         data.is_verified ?? null,
         uuid,
       ]);
-      
+
       if (result.rows.length === 0) {
         throw new UserNotFoundException(uuid);
       }
-      
+
       return result.rows[0] as User;
     } catch (error) {
       if (error instanceof UserNotFoundException) {
@@ -138,7 +138,9 @@ export class UsersService {
    */
   async emailExists(email: string): Promise<boolean> {
     try {
-      const result = await this.db.query(queries.users.checkEmailExists, [email]);
+      const result = await this.db.query(queries.users.checkEmailExists, [
+        email,
+      ]);
       return result.rows[0].exists;
     } catch (error) {
       throw new DatabaseException('check email exists');
@@ -150,7 +152,9 @@ export class UsersService {
    */
   async phoneExists(phone: string): Promise<boolean> {
     try {
-      const result = await this.db.query(queries.users.checkPhoneExists, [phone]);
+      const result = await this.db.query(queries.users.checkPhoneExists, [
+        phone,
+      ]);
       return result.rows[0].exists;
     } catch (error) {
       throw new DatabaseException('check phone exists');
