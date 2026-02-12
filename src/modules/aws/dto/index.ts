@@ -1,5 +1,4 @@
-export { UploadFileDto } from './upload-file.dto';
-export { FileMetadata } from './file-metadata-response.dto';
-export { UploadResponseDto } from './upload-response.dto';
-export { BatchUploadFileDto } from './batch-upload-file.dto';
-export { BatchFileItem } from './batch-file-item.dto';
+export { FileMetadata } from './response/file-metadata.response.dto';
+export { UploadFilesResponseDto } from './response/upload-files.response.dto';
+export { UploadFilesDto } from './request/upload-files.dto';
+export { FileItemDto } from './request/file-item.dto';

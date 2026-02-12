@@ -6,42 +6,27 @@ import {
   Body,
   Param,
   UseInterceptors,
-  UploadedFile,
   UploadedFiles,
   BadRequestException,
   Query,
 } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Express } from 'express';
 import { AwsService } from './aws.service';
-import {
-  UploadFileDto,
-  BatchUploadFileDto,
-  UploadResponseDto,
-  FileMetadata,
-} from './dto';
-import { FileValidationPipe, FilesValidationPipe } from './pipes';
+import { UploadFilesDto, UploadFilesResponseDto } from './dto';
+import { FilesValidationPipe } from './pipes';
 
 @Controller('aws/files')
 export class AwsController {
   constructor(private readonly awsService: AwsService) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(
-    @UploadedFile(new FileValidationPipe()) file: Express.Multer.File,
-    @Body() uploadDto: UploadFileDto,
-  ): Promise<FileMetadata> {
-    return this.awsService.uploadFile(file, uploadDto);
-  }
-
-  @Post('upload/batch')
   @UseInterceptors(FilesInterceptor('files', 10))
-  async uploadBatch(
+  async uploadFiles(
     @UploadedFiles(new FilesValidationPipe()) files: Express.Multer.File[],
-    @Body() batchDto: BatchUploadFileDto,
-  ): Promise<UploadResponseDto> {
-    return this.awsService.uploadBatch(files, batchDto);
+    @Body() uploadFilesDto: UploadFilesDto,
+  ): Promise<UploadFilesResponseDto> {
+    return this.awsService.uploadFiles(files, uploadFilesDto);
   }
 
   @Get(':fileId/download')
@@ -67,14 +52,14 @@ export class AwsController {
   @Delete(':fileId')
   async deleteFile(
     @Param('fileId') fileId: string,
-  ): Promise<UploadResponseDto> {
+  ): Promise<UploadFilesResponseDto> {
     return this.awsService.deleteFile(fileId);
   }
 
   @Delete()
   async deleteFiles(
     @Body('fileIds') fileIds: string[],
-  ): Promise<UploadResponseDto> {
+  ): Promise<UploadFilesResponseDto> {
     if (!fileIds || fileIds.length === 0) {
       throw new BadRequestException('No file IDs provided');
     }

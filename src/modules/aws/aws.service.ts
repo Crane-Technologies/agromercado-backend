@@ -4,6 +4,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
+
 import {
   S3Client,
   PutObjectCommand,
@@ -11,14 +12,23 @@ import {
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import {
-  UploadFileDto,
-  BatchUploadFileDto,
-  UploadResponseDto,
-  FileMetadata,
-} from './dto';
+
 import Database from '@crane-technologies/database';
 import { queries } from '../database/queries';
+
+import { ConfigService } from '@nestjs/config';
+
+import {
+  UploadFilesDto,
+  UploadFilesResponseDto,
+  FileMetadata,
+  FileItemDto,
+} from './dto';
+
+interface FileMetadataInput extends FileItemDto {
+  s3Bucket: string;
+  s3Key: string;
+}
 
 @Injectable()
 export class AwsService {
@@ -27,12 +37,15 @@ export class AwsService {
   private readonly s3Region: string;
 
   constructor(
-    @Inject('DATABASE_CONNECTION') private readonly database: Database,
+    @Inject('DATABASE_CONNECTION') private readonly db: Database,
+    private readonly configService: ConfigService,
   ) {
-    const bucket = process.env.AWS_S3_BUCKET_NAME;
-    const region = process.env.AWS_REGION;
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    const bucket = this.configService.get<string>('AWS_S3_BUCKET_NAME');
+    const region = this.configService.get<string>('AWS_REGION');
+    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
+    const secretAccessKey = this.configService.get<string>(
+      'AWS_SECRET_ACCESS_KEY',
+    );
 
     if (!bucket || !region || !accessKeyId || !secretAccessKey) {
       throw new Error(
@@ -51,63 +64,10 @@ export class AwsService {
     });
   }
 
-  async uploadFile(
-    file: Express.Multer.File,
-    uploadDto: UploadFileDto,
-  ): Promise<FileMetadata> {
-    try {
-      const s3Key = this.generateS3Key(
-          uploadDto.livestockPostId,
-          file.originalname,
-        ),
-        mimeType = uploadDto.mimeType,
-        uploadObject = {
-          Bucket: this.s3Bucket,
-          Key: s3Key,
-          Body: file.buffer,
-          ContentType: mimeType,
-          Metadata: {
-            'livestock-post-id': uploadDto.livestockPostId,
-            'original-name': file.originalname,
-          },
-        },
-        uploadCommand = new PutObjectCommand(uploadObject);
-      await this.s3Client.send(uploadCommand);
-
-      const {
-          fileName,
-          fileSizeBytes,
-          livestockPostId,
-          isMainFile,
-          displayOrder,
-        } = uploadDto,
-        fileMetadata = await this.saveFileMetadata({
-          fileName: fileName,
-          fileSizeBytes: fileSizeBytes,
-          mimeType: mimeType,
-          livestockPostId: livestockPostId,
-          s3Bucket: this.s3Bucket,
-          s3Key,
-          isMainFile: isMainFile || false,
-          displayOrder: displayOrder || 0,
-        });
-
-      return fileMetadata;
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new InternalServerErrorException(
-        `Error al subir archivo: ${message}`,
-      );
-    }
-  }
-
-  async uploadBatch(
+  async uploadFiles(
     files: Express.Multer.File[],
-    batchDto: BatchUploadFileDto,
-  ): Promise<UploadResponseDto> {
+    dto: UploadFilesDto,
+  ): Promise<UploadFilesResponseDto> {
     try {
       const uploadedFiles: FileMetadata[] = [];
       const errors: string[] = [];
@@ -115,7 +75,7 @@ export class AwsService {
       for (let i = 0; i < files.length; i++) {
         try {
           const file = files[i];
-          const fileConfig = batchDto.files[i];
+          const fileConfig = dto.files[i];
 
           if (!fileConfig) {
             throw new BadRequestException(
@@ -123,8 +83,14 @@ export class AwsService {
             );
           }
 
+          if (!fileConfig.livestockPostId) {
+            throw new BadRequestException(
+              `livestockPostId requerido para el archivo en posición ${i}`,
+            );
+          }
+
           const s3Key = this.generateS3Key(
-              batchDto.livestockPostId,
+              fileConfig.livestockPostId,
               file.originalname,
             ),
             uploadObject = {
@@ -133,7 +99,7 @@ export class AwsService {
               Body: file.buffer,
               ContentType: file.mimetype,
               Metadata: {
-                'livestock-post-id': batchDto.livestockPostId,
+                'livestock-post-id': fileConfig.livestockPostId,
                 'original-name': file.originalname,
               },
             },
@@ -151,7 +117,7 @@ export class AwsService {
               fileName: fileName,
               fileSizeBytes: fileSizeBytes,
               mimeType: mimeType,
-              livestockPostId: batchDto.livestockPostId,
+              livestockPostId: fileConfig.livestockPostId,
               s3Bucket: this.s3Bucket,
               s3Key,
               isMainFile: isMainFile || false,
@@ -186,7 +152,7 @@ export class AwsService {
       }
       const message = error instanceof Error ? error.message : 'Unknown error';
       throw new InternalServerErrorException(
-        `Error al subir lote de archivos: ${message}`,
+        `Error al subir archivos: ${message}`,
       );
     }
   }
@@ -196,7 +162,7 @@ export class AwsService {
     expiresIn: number = 3600,
   ): Promise<string> {
     try {
-      const file = (await this.database.query(queries.getFileMetadata, [
+      const file = (await this.db.query(queries.aws.getFileMetadata, [
         fileId,
       ])) as FileMetadata;
 
@@ -231,10 +197,10 @@ export class AwsService {
   ): Promise<FileMetadata[]> {
     try {
       const query = mainOnly
-        ? queries.getMainFileByLivestockPost
-        : queries.getFilesByLivestockPost;
+        ? queries.aws.getMainFileByLivestockPost
+        : queries.aws.getFilesByLivestockPost;
 
-      const files: FileMetadata[] = (await this.database.query(query, [
+      const files: FileMetadata[] = (await this.db.query(query, [
         livestockPostId,
       ])) as FileMetadata[];
       return files || [];
@@ -246,10 +212,10 @@ export class AwsService {
     }
   }
 
-  async deleteFile(fileId: string): Promise<UploadResponseDto> {
+  async deleteFile(fileId: string): Promise<UploadFilesResponseDto> {
     try {
-      const file: FileMetadata = (await this.database.query(
-        queries.getFileMetadata,
+      const file: FileMetadata = (await this.db.query(
+        queries.aws.getFileMetadata,
         [fileId],
       )) as FileMetadata;
 
@@ -264,7 +230,7 @@ export class AwsService {
 
       await this.s3Client.send(deleteCommand);
 
-      await this.database.query(queries.deleteFile, [fileId]);
+      await this.db.query(queries.aws.deleteFile, [fileId]);
 
       return {
         success: true,
@@ -281,15 +247,15 @@ export class AwsService {
     }
   }
 
-  async deleteFiles(fileIds: string[]): Promise<UploadResponseDto> {
+  async deleteFiles(fileIds: string[]): Promise<UploadFilesResponseDto> {
     try {
       const deletedFiles: string[] = [];
       const errors: string[] = [];
 
       for (const fileId of fileIds) {
         try {
-          const file: FileMetadata = (await this.database.query(
-            queries.getFileMetadata,
+          const file: FileMetadata = (await this.db.query(
+            queries.aws.getFileMetadata,
             [fileId],
           )) as FileMetadata;
           if (!file) {
@@ -304,7 +270,7 @@ export class AwsService {
 
           await this.s3Client.send(deleteCommand);
 
-          await this.database.query(queries.deleteFile, [fileId]);
+          await this.db.query(queries.aws.deleteFile, [fileId]);
           deletedFiles.push(fileId);
         } catch (error) {
           const message =
@@ -341,17 +307,17 @@ export class AwsService {
   }
 
   private async saveFileMetadata(
-    fileData: UploadFileDto,
+    fileData: FileMetadataInput,
   ): Promise<FileMetadata> {
-    const result = (await this.database.query(queries.insertLivestockPostFile, [
+    const result = (await this.db.query(queries.aws.insertLivestockPostFile, [
       fileData.fileName,
       fileData.fileSizeBytes,
       fileData.mimeType,
       fileData.livestockPostId,
       fileData.s3Bucket,
       fileData.s3Key,
-      fileData.isMainFile,
-      fileData.displayOrder,
+      fileData.isMainFile || false,
+      fileData.displayOrder || 0,
     ])) as FileMetadata;
 
     console.log('Metadata guardada:', result);
