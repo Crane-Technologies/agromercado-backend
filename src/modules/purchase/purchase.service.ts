@@ -1,17 +1,35 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { CreatePurchaseDto } from './dto/create-purchase.dto';
-import { UpdatePurchaseDto } from './dto/update-purchase.dto';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto } from './dto';
 
-import Database from '@crane-technologies/database';
-import { DATABASE } from '../database/database.provider';
-import { queries } from '../database/queries';
+import { PurchaseRepository } from './purchase.repository';
+
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PurchaseService {
-  constructor(@Inject(DATABASE) private readonly database: Database) {}
+  constructor(
+    private readonly purchaseRepository: PurchaseRepository,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
-  createPurchaseRequest(createPurchaseDto: CreatePurchaseDto) {
-    return 'This action adds a new purchase';
+  async createPurchaseRequest(dto: CreatePurchaseRequestDto): Promise<void> {
+    try {
+      await this.purchaseRepository.createPurchaseRequest(dto);
+
+      // TODO: Se requiere obtener el id del usuario vendedor para enviar la notificación al usuario correcto
+      await this.notificationsService.createAndSend({
+        livestockPostId: dto.livestockPostId,
+        sentBy: dto.potentialBuyer,
+        purchaseNotificationTypeId: 1,
+        message: `Has recibido una nueva solicitud de compra de ${dto.potentialBuyer}`,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create purchase request',
+      );
+    }
   }
 
   getAll() {
@@ -22,7 +40,7 @@ export class PurchaseService {
     return `This action returns a #${id} purchase`;
   }
 
-  update(id: number, updatePurchaseDto: UpdatePurchaseDto) {
+  update(id: number, updatePurchaseDto: UpdatePurchaseRequestDto) {
     return `This action updates a #${id} purchase`;
   }
 
