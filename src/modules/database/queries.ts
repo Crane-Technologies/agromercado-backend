@@ -6,13 +6,8 @@ export const queries = createQueries({
     
     findById: 'SELECT * FROM app_user WHERE app_user_id = $1',
     
-    create: `
-      INSERT INTO app_user 
-      (email, phone, password_hash, document_type, document_number, township_id, role_id) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7) 
-      RETURNING *
-    `,
-    
+    create: 'SELECT create_app_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+
     update: `
       UPDATE app_user 
       SET 
