@@ -10,8 +10,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { LivestockPostsService } from './posts.service';
-import { UpdateLivestockPostDto } from './dto/request/update-livestock-post.dto';
-import { UploadLivestockPostDto } from './dto/request';
+import { UploadLivestockPostDto, UpdateLivestockPostDto } from './dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('posts')
@@ -24,6 +23,7 @@ export class LivestockPostsController {
     @Body() dto: UploadLivestockPostDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
+    console.log('Received DTO:', dto);
     return await this.livestockPostsService.uploadLivestockPost(dto, files);
   }
 

@@ -158,4 +158,28 @@ export const queries = createQueries({
     RETURNING livestock_post_id;
   `,
   },
+
+  purchase: {
+    createPurchaseRequest: `
+    INSERT INTO purchase_request (
+      livestock_post_id,
+      potential_buyer,
+      requested_quantity,
+      message
+    )
+    VALUES ($1, $2, $3, $4)
+  `,
+  },
+
+  purchaseNotification: {
+    createPurchaseNotification: `
+      INSERT INTO purchase_notification (
+        sent_by,
+        livestock_post_id,
+        purchase_notification_type_id,
+        message
+      )
+      VALUES ($1, $2, $3, $4)
+    `,
+  },
 });

@@ -4,7 +4,7 @@ import {
   ArrayMaxSize,
   ValidateNested,
 } from 'class-validator';
-import { FileItemDto } from './file-item.dto';
+import { FileItemDto } from './file-item.request.dto';
 
 export class UploadFilesDto {
   @IsArray()

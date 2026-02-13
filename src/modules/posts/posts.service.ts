@@ -1,9 +1,11 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { UploadLivestockPostDto, UpdateLivestockPostDto } from './dto/request';
-import { UploadLivestockPostResponseDto } from './dto/response';
+import {
+  UploadLivestockPostDto,
+  UpdateLivestockPostDto,
+  UploadLivestockPostResponseDto,
+} from './dto';
 
 import { LivestockPostsRepository } from './posts.repository';
-
 import { AwsService } from '../aws/aws.service';
 
 @Injectable()
@@ -21,6 +23,22 @@ export class LivestockPostsService {
       const livestockPostId = await this.postsRepository.createLivestockPost(
         dto.post,
       );
+
+      if (
+        !files ||
+        files.length === 0 ||
+        !dto.files ||
+        dto.files.length === 0
+      ) {
+        return {
+          livestockPostId,
+          filesInfo: {
+            success: true,
+            message: 'Post creado sin archivos',
+            uploadedCount: 0,
+          },
+        };
+      }
 
       const filesWithPostId = dto.files.map((file) => ({
         ...file,

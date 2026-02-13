@@ -8,16 +8,16 @@ import {
   Delete,
 } from '@nestjs/common';
 import { PurchaseService } from './purchase.service';
-import { CreatePurchaseDto } from './dto/create-purchase.dto';
-import { UpdatePurchaseDto } from './dto/update-purchase.dto';
+import { CreatePurchaseRequestDto } from './dto/request/create-purchase.request.dto';
+import { UpdatePurchaseRequestDto } from './dto/request/update-purchase.request.dto';
 
 @Controller('purchase')
 export class PurchaseController {
   constructor(private readonly purchaseService: PurchaseService) {}
 
   @Post()
-  createPurchaseRequest(@Body() createPurchaseDto: CreatePurchaseDto) {
-    return this.purchaseService.createPurchaseRequest(createPurchaseDto);
+  createPurchaseRequest(@Body() dto: CreatePurchaseRequestDto) {
+    return this.purchaseService.createPurchaseRequest(dto);
   }
 
   @Get()
@@ -33,7 +33,7 @@ export class PurchaseController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updatePurchaseDto: UpdatePurchaseDto,
+    @Body() updatePurchaseDto: UpdatePurchaseRequestDto,
   ) {
     return this.purchaseService.update(+id, updatePurchaseDto);
   }
