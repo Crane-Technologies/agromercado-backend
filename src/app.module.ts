@@ -1,22 +1,31 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { DatabaseModule } from './modules/database/database.module';
+import { AwsModule } from './modules/aws/aws.module';
+import { PurchaseModule } from './modules/purchase/purchase.module';
+import { LivestockPostsModule } from './modules/posts/posts.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
-import { DatabaseModule } from './modules/database/database.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
-    // Configurar ConfigModule PRIMERO (antes que todo)
     ConfigModule.forRoot({
-      isGlobal: true,        // Hace que esté disponible en toda la app
-      envFilePath: '.env',   // Ruta al archivo .env
-      cache: true,           // Cachea las variables para mejor performance
+      isGlobal: true,
+      envFilePath: '.env',
+      cache: true,
     }),
     DatabaseModule,
     AuthModule,
     UsersModule,
+    AwsModule,
+    PurchaseModule,
+    LivestockPostsModule,
+    NotificationsModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

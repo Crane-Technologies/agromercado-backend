@@ -3,8 +3,8 @@ import { DATABASE } from '../database/database.provider';
 import Database from '@crane-technologies/database';
 import { queries } from '../database/queries';
 import * as bcrypt from 'bcrypt';
-import { 
-  UserNotFoundException, 
+import {
+  UserNotFoundException,
   DatabaseException,
   UserAlreadyExistsException,
 } from '../auth/exceptions/auth.exceptions';
@@ -59,14 +59,16 @@ export class UsersService {
 
       return user;
     } catch (error) {
-      if (error instanceof UserAlreadyExistsException || error instanceof DatabaseException) {
+      if (
+        error instanceof UserAlreadyExistsException ||
+        error instanceof DatabaseException
+      ) {
         throw error;
       }
       throw new DatabaseException('register user');
     }
   }
 
-  
   async findByEmail(email: string): Promise<User | null> {
     try {
       const result = await this.db.query(queries.users.findByEmail, [email]);
@@ -97,7 +99,7 @@ export class UsersService {
     try {
       const roleId = userData.role_id || 1;
       const townshipId = userData.township_id || null;
-      
+
       const result = await this.db.query(queries.users.create, [
         userData.email,
         userData.phone,
@@ -107,7 +109,7 @@ export class UsersService {
         townshipId,
         roleId,
       ]);
-      
+
       return result.rows[0] as User;
     } catch (error: any) {
       if (error.code === '23505') {
@@ -121,7 +123,7 @@ export class UsersService {
           throw new DatabaseException('Document number already exists');
         }
       }
-      
+
       throw new DatabaseException('create user');
     }
   }
@@ -143,11 +145,11 @@ export class UsersService {
         data.is_verified ?? null,
         uuid,
       ]);
-      
+
       if (result.rows.length === 0) {
         throw new UserNotFoundException(uuid);
       }
-      
+
       return result.rows[0] as User;
     } catch (error) {
       if (error instanceof UserNotFoundException) {
@@ -159,7 +161,9 @@ export class UsersService {
 
   async emailExists(email: string): Promise<boolean> {
     try {
-      const result = await this.db.query(queries.users.checkEmailExists, [email]);
+      const result = await this.db.query(queries.users.checkEmailExists, [
+        email,
+      ]);
       return result.rows[0].exists;
     } catch (error) {
       throw new DatabaseException('check email exists');
@@ -168,7 +172,9 @@ export class UsersService {
 
   async phoneExists(phone: string): Promise<boolean> {
     try {
-      const result = await this.db.query(queries.users.checkPhoneExists, [phone]);
+      const result = await this.db.query(queries.users.checkPhoneExists, [
+        phone,
+      ]);
       return result.rows[0].exists;
     } catch (error) {
       throw new DatabaseException('check phone exists');
