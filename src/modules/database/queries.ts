@@ -6,7 +6,7 @@ export const queries = createQueries({
 
     findById: 'SELECT * FROM app_user WHERE app_user_id = $1',
 
-    create: 'SELECT create_app_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+    create: 'SELECT create_app_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) as app_user_id',
 
     update: `
       UPDATE app_user 

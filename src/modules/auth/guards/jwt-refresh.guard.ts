@@ -1,11 +1,40 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { 
+  InvalidTokenException, 
+  TokenExpiredException,
+  TokenNotFoundException 
+} from '../exceptions/auth.exceptions';
 
 @Injectable()
-export class JwtRefreshGuard implements CanActivate {
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
-    return true;
+export class JwtRefreshGuard extends AuthGuard('jwt-refresh') {
+  canActivate(context: ExecutionContext) {
+    return super.canActivate(context);
+  }
+
+  handleRequest(err: any, user: any, info: any) {
+    // Manejar errores de forma personalizada
+    
+    if (err || !user) {
+      // Token expirado
+      if (info?.name === 'TokenExpiredError') {
+        throw new TokenExpiredException();
+      }
+      
+      // Token inválido o malformado
+      if (info?.name === 'JsonWebTokenError') {
+        throw new InvalidTokenException();
+      }
+      
+      // No se proporcionó token
+      if (info?.message === 'No auth token') {
+        throw new TokenNotFoundException();
+      }
+      
+      // Otro error
+      throw err || new UnauthorizedException('Refresh token authentication failed');
+    }
+    
+    return user;
   }
 }

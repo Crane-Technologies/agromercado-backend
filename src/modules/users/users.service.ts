@@ -8,7 +8,7 @@ import {
   DatabaseException,
   UserAlreadyExistsException,
 } from '../auth/exceptions/auth.exceptions';
-import { RegisterDto } from '../auth/dto/register.dto';
+import { RegisterDto } from './dto/register.dto';
 
 export interface User {
   app_user_id: string;
@@ -29,46 +29,6 @@ export interface User {
 export class UsersService {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  async register(registerDto: RegisterDto): Promise<User> {
-    try {
-      // Verificar que el email no exista
-      const emailExists = await this.emailExists(registerDto.email);
-      if (emailExists) {
-        throw new UserAlreadyExistsException(registerDto.email);
-      }
-
-      // Verificar que el teléfono no exista
-      const phoneExists = await this.phoneExists(registerDto.phone);
-      if (phoneExists) {
-        throw new DatabaseException('Phone number already exists');
-      }
-
-      // Encriptar contraseña
-      const password_hash = await bcrypt.hash(registerDto.password, 10);
-
-      // Crear usuario
-      const user = await this.create({
-        email: registerDto.email,
-        phone: registerDto.phone,
-        password_hash,
-        document_type: registerDto.document_type,
-        document_number: registerDto.document_number,
-        township_id: registerDto.township_id,
-        role_id: 1,
-      });
-
-      return user;
-    } catch (error) {
-      if (
-        error instanceof UserAlreadyExistsException ||
-        error instanceof DatabaseException
-      ) {
-        throw error;
-      }
-      throw new DatabaseException('register user');
-    }
-  }
-
   async findByEmail(email: string): Promise<User | null> {
     try {
       const result = await this.db.query(queries.users.findByEmail, [email]);
@@ -87,44 +47,73 @@ export class UsersService {
     }
   }
 
-  async create(userData: {
-    email: string;
-    phone: string;
-    password_hash: string;
-    document_type: string;
-    document_number: number;
-    township_id?: number;
-    role_id?: number;
-  }): Promise<User> {
+  async create(registerDto: RegisterDto): Promise<User> {
     try {
-      const roleId = userData.role_id || 1;
-      const townshipId = userData.township_id || null;
-
-      const result = await this.db.query(queries.users.create, [
-        userData.email,
-        userData.phone,
-        userData.password_hash,
-        userData.document_type,
-        userData.document_number,
-        townshipId,
-        roleId,
-      ]);
-
-      return result.rows[0] as User;
-    } catch (error: any) {
-      if (error.code === '23505') {
-        if (error.constraint?.includes('email')) {
-          throw new DatabaseException('Email already exists');
-        }
-        if (error.constraint?.includes('phone')) {
-          throw new DatabaseException('Phone already exists');
-        }
-        if (error.constraint?.includes('document')) {
-          throw new DatabaseException('Document number already exists');
-        }
+      // 1. Verificar que el email no exista
+      const emailExists = await this.emailExists(registerDto.email);
+      if (emailExists) {
+        throw new UserAlreadyExistsException(registerDto.email);
       }
 
-      throw new DatabaseException('create user');
+      // 2. Verificar que el teléfono no exista
+      const phoneExists = await this.phoneExists(registerDto.phone);
+      if (phoneExists) {
+        throw new DatabaseException('Phone number already exists');
+      }
+
+      // 3. Encriptar password
+      const password_hash = await bcrypt.hash(registerDto.password, 10);
+
+      // 4. Llamar a la función de BD
+      const result = await this.db.query(queries.users.create, [
+        registerDto.email,
+        registerDto.phone,
+        password_hash,
+        registerDto.document_type,
+        registerDto.document_number,
+        registerDto.township_id || null,
+        1, // role_id por defecto
+        registerDto.first_name || null,
+        registerDto.middle_name || null,
+        registerDto.surname || null,
+        registerDto.second_surname || null,
+        registerDto.birthdate || null,
+        registerDto.company_name || null,
+      ]);
+
+      console.log('Result from create_app_user:', result.rows);
+
+      // 5. Buscar usuario completo
+      const userId = result.rows[0].app_user_id;
+      console.log('Searching for user with ID:', userId);
+      const user = await this.findById(userId);
+      console.log('User found after creation:', user);
+
+      if (!user) {
+        throw new DatabaseException('User created but not found');
+      }
+
+      return user;
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      
+      if (error instanceof UserAlreadyExistsException || error instanceof DatabaseException) {
+        throw error;
+      }
+
+      if (error.message?.includes('already exists')) {
+        throw new DatabaseException('User with this email, phone, or document number already exists');
+      }
+      
+      if (error.message?.includes('Company name is required')) {
+        throw new DatabaseException('Company name is required for legal entities');
+      }
+      
+      if (error.message?.includes('First name and surname are required')) {
+        throw new DatabaseException('First name and surname are required for natural persons');
+      }
+      
+      throw new DatabaseException(`create user: ${error.message}`);
     }
   }
 

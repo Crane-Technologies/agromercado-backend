@@ -69,9 +69,18 @@ export class AuthService {
    */
   async logout(userId: string): Promise<{ message: string }> {
     try {
-      await this.db.query(queries.auth.revokeAllUserTokens, [userId]);
+      console.log('🔍 Intentando logout para usuario:', userId);
+      
+      const result = await this.db.query(queries.auth.revokeAllUserTokens, [userId]);
+      
+      console.log('✅ Tokens revocados:', result.rowCount);
+      
       return { message: 'Logged out successfully' };
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Error en logout:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error code:', error.code);
+      
       throw new DatabaseException('logout');
     }
   }
@@ -81,7 +90,7 @@ export class AuthService {
    */
   async refresh(refreshToken: string): Promise<TokensResponse> {
     try {
-      // 1. Verificar que el refresh token sea válido
+      // 1. Verificar que el refresh token sea válido (JWT)
       let payload: JwtPayload;
       try {
         payload = this.jwtService.verify(refreshToken, {
@@ -91,13 +100,30 @@ export class AuthService {
         throw new InvalidTokenException();
       }
 
-      // 2. Hash del refresh token para buscar en BD
-      const hashedToken = await this.hashToken(refreshToken);
-
-      // 3. Verificar que el token no esté revocado
-      const result = await this.db.query(queries.auth.findRefreshToken, [hashedToken]);
+      // 2. Buscar TODOS los refresh tokens del usuario (no revocados y no expirados)
+      const result = await this.db.query(
+        `SELECT * FROM refresh_token 
+        WHERE user_id = $1 
+          AND revoked = false 
+          AND expires_at > NOW()`,
+        [payload.sub]
+      );
 
       if (result.rows.length === 0) {
+        throw new RefreshTokenRevokedException();
+      }
+
+      // 3. Comparar el token enviado con cada hash guardado usando bcrypt.compare()
+      let tokenFound = false;
+      for (const row of result.rows) {
+        const isValid = await bcrypt.compare(refreshToken, row.token_hash);
+        if (isValid) {
+          tokenFound = true;
+          break;
+        }
+      }
+
+      if (!tokenFound) {
         throw new RefreshTokenRevokedException();
       }
 
@@ -108,7 +134,7 @@ export class AuthService {
         throw new UserNotFoundException(payload.sub);
       }
 
-      // 5. Generar nuevo access token
+      // 5. Generar nuevo access token (mantener el mismo refresh token)
       const accessToken = await this.generateAccessToken(user);
 
       return {
@@ -123,10 +149,11 @@ export class AuthService {
       ) {
         throw error;
       }
+      
+      console.error('❌ Error in refresh:', error);
       throw new DatabaseException('refresh token');
     }
   }
-
   /**
    * VALIDAR CREDENCIALES (usado en login)
    */
