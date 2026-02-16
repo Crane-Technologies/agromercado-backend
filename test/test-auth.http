@@ -1,4 +1,4 @@
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:3000/api
 
 ###############################################
 # PRUEBAS DE EXCEPCIONES
@@ -69,3 +69,130 @@ GET {{baseUrl}}/users/check/email/testuser@example.com
 
 ### Test 5: Buscar por ID (reemplaza con el UUID que te devuelva el test 2)
 GET {{baseUrl}}/users/fd8b69b2-e6d0-40bd-a312-01dfe76bac43
+
+###############################################
+# PRUEBAS DE AUTENTICACIÓN
+###############################################
+
+### 1. Registrar Persona (document_type V)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "juan.perez3@example.com",
+  "password": "Password123!",
+  "phone": "+584121234569",
+  "document_type": "V",
+  "document_number": 12345670,
+  "township_id": 1,
+  "first_name": "Juan",
+  "middle_name": "Carlos",
+  "surname": "Pérez",
+  "second_surname": "González",
+  "birthdate": "1990-01-15"
+}
+
+### 2. Registrar Empresa (document_type J)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "empresa@example.com",
+  "password": "Password123!",
+  "phone": "+584129876543",
+  "document_type": "J",
+  "document_number": 87654321,
+  "township_id": 1,
+  "company_name": "Mi Empresa C.A."
+}
+
+### 3. Login con usuario registrado
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan.perez@example.com",
+  "password": "Password123!",
+  "remember_me": false
+}
+
+### 4. Login con "Remember Me"
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan.perez@example.com",
+  "password": "Password123!",
+  "remember_me": true
+}
+
+### 5. Refresh Token (reemplaza con el refresh_token del login)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNGZmOTFkNC05YWI0LTRkNmMtOTgxZS1kODVhODRjY2U5ZWYiLCJlbWFpbCI6Imp1YW4ucGVyZXpAZXhhbXBsZS5jb20iLCJyb2xlX2lkIjoxLCJpYXQiOjE3NzExODE2MDIsImV4cCI6MTc3MTI2ODAwMn0.XR6SBDtF266NmKt7cE3HlfiikmkPnVsDNDVBo9mXHBQ"
+}
+
+###############################################
+# PRUEBAS DE ERRORES
+###############################################
+
+### 6. Intentar registrar email duplicado (debe fallar)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "juan.perez@example.com",
+  "password": "Password123!",
+  "phone": "+584121111111",
+  "document_type": "V",
+  "document_number": 99999999,
+  "township_id": 1,
+  "first_name": "Otro",
+  "surname": "Usuario"
+}
+
+### 7. Login con credenciales incorrectas (debe fallar)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan.perez@example.com",
+  "password": "PasswordIncorrecta!"
+}
+
+### 8. Registrar persona sin first_name (debe fallar)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "error@example.com",
+  "password": "Password123!",
+  "phone": "+584122222222",
+  "document_type": "V",
+  "document_number": 11111111,
+  "township_id": 1,
+  "surname": "Solo Apellido"
+}
+
+### 9. Registrar empresa sin company_name (debe fallar)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "error2@example.com",
+  "password": "Password123!",
+  "phone": "+584123333333",
+  "document_type": "J",
+  "document_number": 22222222,
+  "township_id": 1
+}
+
+### 10. Acceder a endpoint protegido sin token (debe fallar)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNGZmOTFkNC05YWI0LTRkNmMtOTgxZS1kODVhODRjY2U5ZWYiLCJlbWFpbCI6Imp1YW4ucGVyZXpAZXhhbXBsZS5jb20iLCJyb2xlX2lkIjoxLCJpYXQiOjE3NzEyMjgyMjEsImV4cCI6MTc3MTIyOTEyMX0.WIZWAkgy29Huret5QXKWi1JE4is4BYNumURnejCx5bc
+
+### 11. Logout (requiere token válido)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNGZmOTFkNC05YWI0LTRkNmMtOTgxZS1kODVhODRjY2U5ZWYiLCJlbWFpbCI6Imp1YW4ucGVyZXpAZXhhbXBsZS5jb20iLCJyb2xlX2lkIjoxLCJpYXQiOjE3NzEyMjkwMDYsImV4cCI6MTc3MTIyOTkwNn0.AA58PSGWPN9sz_sFO000s2nuJ-sPgjiSJo8qHd6BWog

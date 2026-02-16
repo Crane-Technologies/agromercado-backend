@@ -35,9 +35,4 @@ export class UsersController {
     };
   }
 
-  // Endpoint temporal para crear usuario de prueba
-  @Post('test-create')
-  async testCreate(@Body() body: any) {
-    return await this.usersService.create(body);
-  }
 }

@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { RegisterDto } from '../users/dto/register.dto'; // ← IMPORTANTE: Importar desde users
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponse, TokensResponse } from './interfaces/auth-response.interface';
 import { 
@@ -15,6 +15,8 @@ import {
   DatabaseException,
   TokenNotFoundException,
 } from './exceptions/auth.exceptions';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -23,14 +25,15 @@ export class AuthController {
     private readonly usersService: UsersService,
   ) {}
 
+  // Registro de usuario + login automático
   @Post('register')
   async register(@Body() registerDto: RegisterDto): Promise<{
     statusCode: number;
     message: string;
     data: AuthResponse;
   }> {
-    // 1. Crear usuario (UsersService maneja la encriptación)
-    const user = await this.usersService.register(registerDto);
+    // 1. Crear usuario (UsersService.create() maneja todo)
+    const user = await this.usersService.create(registerDto);
 
     // 2. Login automático (AuthService genera los tokens)
     const loginResult = await this.authService.login({
@@ -46,6 +49,7 @@ export class AuthController {
     };
   }
 
+  // Login con email + password
   @Post('login')
   async login(@Body() loginDto: LoginDto): Promise<{
     statusCode: number;
@@ -61,6 +65,8 @@ export class AuthController {
     };
   }
 
+  
+  // Refresh Token 
   @Post('refresh')
   async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<{
     statusCode: number;
@@ -76,56 +82,29 @@ export class AuthController {
     };
   }
 
-  // ENDPOINTS TEMPORALES DE PRUEBA
+  // LOGOUT (revoca todos los refresh tokens del usuario)
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(@CurrentUser() user): Promise<{
+    statusCode: number;
+    message: string;
+  }> {
+    await this.authService.logout(user.app_user_id); // ← Extraer el UUID aquí
 
-  // Enpoint para probar JWT
-  @Get('test-jwt')
-  testJwt() {
-    return this.authService.testJwtGeneration();
+    return {
+      statusCode: 200,
+      message: 'Logged out successfully',
+    };
   }
 
-  // Endpoint para probar excepciones
-  @Get('test-exception/:type')
-  testException(@Param('type') type: string) {
-    switch(type) {
-      case 'invalid-credentials':
-        throw new InvalidCredentialsException();
-      case 'user-exists':
-        throw new UserAlreadyExistsException('test@example.com');
-      case 'token-expired':
-        throw new TokenExpiredException();
-      case 'invalid-token':
-        throw new InvalidTokenException();
-      case 'token-revoked':
-        throw new RefreshTokenRevokedException();
-      case 'user-not-found':
-        throw new UserNotFoundException('123');
-      case 'database':
-        throw new DatabaseException('test operation');
-      case 'token-not-found':
-        throw new TokenNotFoundException();
-      default:
-        return { 
-          message: 'Exception tester',
-          availableTypes: [
-            'invalid-credentials',
-            'user-exists',
-            'token-expired',
-            'invalid-token',
-            'token-revoked',
-            'user-not-found',
-            'database',
-            'token-not-found'
-          ]
-        };
-    }
-  }
-
-  @Get()
-  healthCheck() {
-    return { 
-      status: 'ok',
-      message: 'Auth module is working'
+  // Endpoint para obtener la información del usuario actual (protegido por JWT)
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  getMe(@CurrentUser() user) {
+    return {
+      statusCode: 200,
+      message: 'Current user information',
+      data: user,
     };
   }
 }
