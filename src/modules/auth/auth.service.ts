@@ -68,12 +68,9 @@ export class AuthService {
    * LOGOUT
    */
   async logout(userId: string): Promise<{ message: string }> {
-    try {
-      console.log('🔍 Intentando logout para usuario:', userId);
-      
+    try {      
       const result = await this.db.query(queries.auth.revokeAllUserTokens, [userId]);
       
-      console.log('✅ Tokens revocados:', result.rowCount);
       
       return { message: 'Logged out successfully' };
     } catch (error: any) {
@@ -251,27 +248,5 @@ export class AuthService {
     return bcrypt.hash(token, 10);
   }
 
-  /**
-   * MÉTODO TEMPORAL PARA PRUEBAS
-   */
-  testJwtGeneration() {
-    const payload: JwtPayload = {
-      sub: '123e4567-e89b-12d3-a456-426614174000',
-      email: 'test@example.com',
-      role_id: 1,
-    };
 
-    const token = this.jwtService.sign(payload);
-    const decoded = this.jwtService.decode(token);
-
-    return {
-      message: 'JWT generated successfully',
-      config: {
-        secret: this.configService.get('JWT_ACCESS_SECRET') ? '✅ Configured' : '❌ Missing',
-        expiration: this.configService.get('JWT_ACCESS_EXPIRATION'),
-      },
-      token: token,
-      decoded: decoded,
-    };
-  }
 }

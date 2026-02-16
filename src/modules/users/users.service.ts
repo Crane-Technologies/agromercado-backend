@@ -81,13 +81,11 @@ export class UsersService {
         registerDto.company_name || null,
       ]);
 
-      console.log('Result from create_app_user:', result.rows);
-
       // 5. Buscar usuario completo
       const userId = result.rows[0].app_user_id;
-      console.log('Searching for user with ID:', userId);
+
       const user = await this.findById(userId);
-      console.log('User found after creation:', user);
+
 
       if (!user) {
         throw new DatabaseException('User created but not found');

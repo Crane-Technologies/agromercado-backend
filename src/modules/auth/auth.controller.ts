@@ -107,18 +107,4 @@ export class AuthController {
       data: user,
     };
   }
-
-  // Endpoints temporales...
-  @Get('test-jwt')
-  testJwt() {
-    return this.authService.testJwtGeneration();
-  }
-
-  @Get()
-  healthCheck() {
-    return { 
-      status: 'ok',
-      message: 'Auth module is working'
-    };
-  }
 }
