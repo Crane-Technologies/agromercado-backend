@@ -13,6 +13,13 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+
+      // Esto sirve para transformar payloads a DTOs con sus tipos definidos
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+
+      disableErrorMessages: false,
     }),
   );
 
