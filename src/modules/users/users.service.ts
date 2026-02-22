@@ -9,6 +9,7 @@ import {
   UserAlreadyExistsException,
 } from '../auth/exceptions/auth.exceptions';
 import { RegisterDto } from './dto/register.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 export interface User {
   app_user_id: string;
@@ -19,6 +20,11 @@ export interface User {
   document_type: string;
   document_number: number;
   township_id: number;
+  first_name?: string;
+  middle_name?: string;
+  surname?: string;
+  second_surname?: string;
+  company_name?: string;
   is_verified: boolean;
   reputation_level_id: number;
   created_at: Date;
@@ -28,6 +34,30 @@ export interface User {
 @Injectable()
 export class UsersService {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  async getAll(): Promise<User[]> {
+    try {
+      const result = await this.db.query(queries.users.findAll);
+      return result.rows as User[];
+    } catch (error) {
+      throw new DatabaseException('getAll users');
+    }
+  }
+
+  async findByNameAndSurname(
+    firstName: string,
+    surname: string,
+  ): Promise<User[]> {
+    try {
+      const result = await this.db.query(queries.users.findByNameAndSurname, [
+        `%${firstName.trim()}%`,
+        `%${surname.trim()}%`,
+      ]);
+      return result.rows as User[];
+    } catch (error) {
+      throw new DatabaseException('findByNameAndSurname');
+    }
+  }
 
   async findByEmail(email: string): Promise<User | null> {
     try {
@@ -115,20 +145,16 @@ export class UsersService {
     }
   }
 
-  async update(
-    uuid: string,
-    data: {
-      email?: string;
-      phone?: string;
-      password_hash?: string;
-      is_verified?: boolean;
-    },
-  ): Promise<User> {
+  async update(uuid: string, data: UpdateUserDto): Promise<User> {
     try {
+      const passwordHash = data.password
+        ? await bcrypt.hash(data.password, 10)
+        : null;
+
       const result = await this.db.query(queries.users.update, [
         data.email ?? null,
         data.phone ?? null,
-        data.password_hash ?? null,
+        passwordHash,
         data.is_verified ?? null,
         uuid,
       ]);
@@ -143,6 +169,23 @@ export class UsersService {
         throw error;
       }
       throw new DatabaseException('update user');
+    }
+  }
+
+  async delete(uuid: string): Promise<User> {
+    try {
+      const result = await this.db.query(queries.users.delete, [uuid]);
+
+      if (result.rows.length === 0) {
+        throw new UserNotFoundException(uuid);
+      }
+
+      return result.rows[0] as User;
+    } catch (error) {
+      if (error instanceof UserNotFoundException) {
+        throw error;
+      }
+      throw new DatabaseException('delete user');
     }
   }
 
