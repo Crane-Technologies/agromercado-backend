@@ -2,6 +2,16 @@ import { createQueries } from '@crane-technologies/database';
 
 export const queries = createQueries({
   users: {
+    findAll: 'SELECT * FROM app_user ORDER BY created_at DESC',
+
+    findByNameAndSurname: `
+      SELECT *
+      FROM app_user
+      WHERE first_name ILIKE $1
+        AND surname ILIKE $2
+      ORDER BY created_at DESC
+    `,
+
     findByEmail: 'SELECT * FROM app_user WHERE email = $1',
 
     findById: 'SELECT * FROM app_user WHERE app_user_id = $1',
@@ -17,6 +27,12 @@ export const queries = createQueries({
         is_verified = COALESCE($4, is_verified),
         updated_at = CURRENT_TIMESTAMP
       WHERE app_user_id = $5
+      RETURNING *
+    `,
+
+    delete: `
+      DELETE FROM app_user
+      WHERE app_user_id = $1
       RETURNING *
     `,
 
