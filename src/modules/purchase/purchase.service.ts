@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto } from './dto';
 
 import { PurchaseRepository } from './purchase.repository';
@@ -12,6 +16,7 @@ export class PurchaseService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
+  // Crea una solicitud de compra y dispara la notificación relacionada.
   async createPurchaseRequest(dto: CreatePurchaseRequestDto): Promise<void> {
     try {
       await this.purchaseRepository.createPurchaseRequest(dto);
@@ -32,19 +37,46 @@ export class PurchaseService {
     }
   }
 
+  // Placeholder temporal para lecturas globales de purchase_request.
   getAll() {
     return `This action returns all purchase`;
   }
 
-  getById(id: number) {
+  // Placeholder temporal para lectura puntual de purchase_request.
+  getById(id: string) {
     return `This action returns a #${id} purchase`;
   }
 
-  update(id: number, updatePurchaseDto: UpdatePurchaseRequestDto) {
-    return `This action updates a #${id} purchase`;
+  // Actualiza la compra y crea automáticamente la venta cuando purchase_status_id pasa a aprobado (2).
+  async update(id: string, updatePurchaseDto: UpdatePurchaseRequestDto) {
+    try {
+      const updateResult = await this.purchaseRepository.updatePurchaseRequest(
+        id,
+        updatePurchaseDto,
+      );
+
+      if (!updateResult) {
+        throw new NotFoundException(`Purchase request with id ${id} not found`);
+      }
+
+      return {
+        purchaseRequest: updateResult.purchaseRequest,
+        saleCreated: Boolean(updateResult.createdSale),
+        saleId: updateResult.createdSale?.sale_id ?? null,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Failed to update purchase',
+      );
+    }
   }
 
-  remove(id: number) {
+  // Placeholder temporal para eliminación de purchase_request.
+  remove(id: string) {
     return `This action removes a #${id} purchase`;
   }
 }

@@ -27,7 +27,7 @@ export class PurchaseController {
 
   @Get(':id')
   getById(@Param('id') id: string) {
-    return this.purchaseService.getById(+id);
+    return this.purchaseService.getById(id);
   }
 
   @Patch(':id')
@@ -35,11 +35,11 @@ export class PurchaseController {
     @Param('id') id: string,
     @Body() updatePurchaseDto: UpdatePurchaseRequestDto,
   ) {
-    return this.purchaseService.update(+id, updatePurchaseDto);
+    return this.purchaseService.update(id, updatePurchaseDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.purchaseService.remove(+id);
+    return this.purchaseService.remove(id);
   }
 }
