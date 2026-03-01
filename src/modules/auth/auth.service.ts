@@ -5,7 +5,7 @@ import { DATABASE } from '../database/database.provider';
 import Database from '@crane-technologies/database';
 import { queries } from '../database/queries';
 import * as bcrypt from 'bcrypt';
-import { 
+import {
   InvalidCredentialsException,
   UserNotFoundException,
   DatabaseException,
@@ -14,7 +14,10 @@ import {
 } from './exceptions/auth.exceptions';
 import { UsersService, User } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
-import { TokensResponse, AuthResponse } from './interfaces/auth-response.interface';
+import {
+  TokensResponse,
+  AuthResponse,
+} from './interfaces/auth-response.interface';
 
 interface JwtPayload {
   sub: string;
@@ -44,10 +47,17 @@ export class AuthService {
       }
 
       // 2. Generar tokens
-      const tokens = await this.generateTokens(user, loginDto.remember_me || false);
+      const tokens = await this.generateTokens(
+        user,
+        loginDto.remember_me || false,
+      );
 
       // 3. Guardar refresh token en BD
-      await this.saveRefreshToken(user.app_user_id, tokens.refresh_token, loginDto.remember_me || false);
+      await this.saveRefreshToken(
+        user.app_user_id,
+        tokens.refresh_token,
+        loginDto.remember_me || false,
+      );
 
       // 4. Retornar usuario (sin password_hash) y tokens
       const { password_hash: _, ...userWithoutPassword } = user;
@@ -68,16 +78,17 @@ export class AuthService {
    * LOGOUT
    */
   async logout(userId: string): Promise<{ message: string }> {
-    try {      
-      const result = await this.db.query(queries.auth.revokeAllUserTokens, [userId]);
-      
-      
+    try {
+      const result = await this.db.query(queries.auth.revokeAllUserTokens, [
+        userId,
+      ]);
+
       return { message: 'Logged out successfully' };
     } catch (error: any) {
       console.error('❌ Error en logout:', error);
       console.error('❌ Error message:', error.message);
       console.error('❌ Error code:', error.code);
-      
+
       throw new DatabaseException('logout');
     }
   }
@@ -98,13 +109,9 @@ export class AuthService {
       }
 
       // 2. Buscar TODOS los refresh tokens del usuario (no revocados y no expirados)
-      const result = await this.db.query(
-        `SELECT * FROM refresh_token 
-        WHERE user_id = $1 
-          AND revoked = false 
-          AND expires_at > NOW()`,
-        [payload.sub]
-      );
+      const result = await this.db.query(queries.auth.findRefreshToken, [
+        payload.sub,
+      ]);
 
       if (result.rows.length === 0) {
         throw new RefreshTokenRevokedException();
@@ -146,7 +153,7 @@ export class AuthService {
       ) {
         throw error;
       }
-      
+
       console.error('❌ Error in refresh:', error);
       throw new DatabaseException('refresh token');
     }
@@ -154,7 +161,10 @@ export class AuthService {
   /**
    * VALIDAR CREDENCIALES (usado en login)
    */
-  private async validateUser(email: string, password: string): Promise<User | null> {
+  private async validateUser(
+    email: string,
+    password: string,
+  ): Promise<User | null> {
     try {
       const user = await this.usersService.findByEmail(email);
 
@@ -162,7 +172,10 @@ export class AuthService {
         return null;
       }
 
-      const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+      const isPasswordValid = await bcrypt.compare(
+        password,
+        user.password_hash,
+      );
 
       if (!isPasswordValid) {
         return null;
@@ -193,7 +206,10 @@ export class AuthService {
   /**
    * GENERAR REFRESH TOKEN
    */
-  private async generateRefreshToken(user: User, rememberMe: boolean): Promise<string> {
+  private async generateRefreshToken(
+    user: User,
+    rememberMe: boolean,
+  ): Promise<string> {
     const payload: JwtPayload = {
       sub: user.app_user_id,
       email: user.email,
@@ -213,7 +229,10 @@ export class AuthService {
   /**
    * GENERAR AMBOS TOKENS
    */
-  private async generateTokens(user: User, rememberMe: boolean): Promise<TokensResponse> {
+  private async generateTokens(
+    user: User,
+    rememberMe: boolean,
+  ): Promise<TokensResponse> {
     const [accessToken, refreshToken] = await Promise.all([
       this.generateAccessToken(user),
       this.generateRefreshToken(user, rememberMe),
@@ -228,14 +247,24 @@ export class AuthService {
   /**
    * GUARDAR REFRESH TOKEN EN BD
    */
-  private async saveRefreshToken(userId: string, refreshToken: string, rememberMe: boolean): Promise<void> {
+  private async saveRefreshToken(
+    userId: string,
+    refreshToken: string,
+    rememberMe: boolean,
+  ): Promise<void> {
     try {
       const hashedToken = await this.hashToken(refreshToken);
 
-      const expiresIn = rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+      const expiresIn = rememberMe
+        ? 7 * 24 * 60 * 60 * 1000
+        : 24 * 60 * 60 * 1000;
       const expiresAt = new Date(Date.now() + expiresIn);
 
-      await this.db.query(queries.auth.saveRefreshToken, [userId, hashedToken, expiresAt]);
+      await this.db.query(queries.auth.saveRefreshToken, [
+        userId,
+        hashedToken,
+        expiresAt,
+      ]);
     } catch (error) {
       throw new DatabaseException('save refresh token');
     }
@@ -247,6 +276,4 @@ export class AuthService {
   private async hashToken(token: string): Promise<string> {
     return bcrypt.hash(token, 10);
   }
-
-
 }

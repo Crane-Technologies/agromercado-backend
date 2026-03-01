@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import {
@@ -18,13 +19,31 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post()
-  create(@Body() createNotificationDto: CreateNotificationRequestDto) {
+  createNotification(
+    @Body() createNotificationDto: CreateNotificationRequestDto,
+  ) {
     return this.notificationsService.createAndSend(createNotificationDto);
   }
 
-  @Get()
-  findAll() {
-    return this.notificationsService.findAll();
+  @Get('chats/:userId')
+  getAllChatsByUser(
+    @Param('userId') userId: string,
+    @Query('limit') limit = '50',
+    @Query('offset') offset = '0',
+  ) {
+    return this.notificationsService.getAllChatsByUser(userId, +limit, +offset);
+  }
+  @Get('chats/:userId/messages')
+  getAllMessagesByChat(
+    @Param('userId') userId: string,
+    @Query('limit') limit = '50',
+    @Query('offset') offset = '0',
+  ) {
+    return this.notificationsService.getAllMessagesByChat(
+      userId,
+      +limit,
+      +offset,
+    );
   }
 
   @Get(':id')

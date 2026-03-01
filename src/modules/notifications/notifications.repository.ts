@@ -17,18 +17,60 @@ export class NotificationsRepository {
   async createPurchaseNotification(
     dto: CreateNotificationRequestDto,
   ): Promise<void> {
-    dto.message = dto.message ?? 'Hola, estoy interesado en tu publicación. ';
+    try {
+      dto.message = dto.message ?? 'Hola, estoy interesado en tu publicación. ';
 
-    const purchaseNotificationParams = [
-      dto.livestockPostId,
-      dto.sentBy,
-      dto.message,
-      dto.isRead,
-    ];
+      const purchaseNotificationParams = [
+        dto.sentBy,
+        dto.livestockPostId,
+        dto.purchaseNotificationTypeId,
+        dto.message,
+      ];
 
-    await this.db.query(
-      queries.purchaseNotification.createPurchaseNotification,
-      purchaseNotificationParams,
-    );
+      await this.db.query(
+        queries.purchaseNotification.createPurchaseNotification,
+        purchaseNotificationParams,
+      );
+    } catch (error) {
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create purchase notification',
+      );
+    }
+  }
+
+  async getAllChatsByUser(userId: string, limit: number, offset: number) {
+    try {
+      const result = await this.db.query(
+        queries.purchaseNotification.getAllChatsByUser,
+        [userId, limit, offset],
+      );
+      return result.rows;
+    } catch (error) {
+      throw new Error(
+        error instanceof Error ? error.message : 'Failed to retrieve all chats',
+      );
+    }
+  }
+
+  async getAllMessagesByChat(
+    livestockPostId: string,
+    limit: number,
+    offset: number,
+  ) {
+    try {
+      const result = await this.db.query(
+        queries.purchaseNotification.getAllMessagesByChat,
+        [livestockPostId, limit, offset],
+      );
+      return result.rows;
+    } catch (error) {
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to retrieve messages for chat',
+      );
+    }
   }
 }
