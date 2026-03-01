@@ -6,7 +6,8 @@ export const queries = createQueries({
 
     findById: 'SELECT * FROM app_user WHERE app_user_id = $1',
 
-    create: 'SELECT create_app_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) as app_user_id',
+    create:
+      'SELECT create_app_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) as app_user_id',
 
     update: `
       UPDATE app_user 
@@ -175,6 +176,41 @@ export const queries = createQueries({
         message
       )
       VALUES ($1, $2, $3, $4)
+    `,
+
+    getAllChatsByUser: `
+      SELECT DISTINCT ON (pn.livestock_post_id)
+        pn.purchase_notification_id,
+        pn.sent_by,
+        pn.livestock_post_id,
+        pn.purchase_notification_type_id,
+        pn.message,
+        pn.is_read,
+        pn.created_at,
+        u.name AS sender_name,
+        lp.livestock_post_name
+      FROM purchase_notification pn
+      JOIN app_user u ON pn.sent_by = u.app_user_id
+      JOIN livestock_post lp ON pn.livestock_post_id = lp.livestock_post_id
+      WHERE pn.sent_by = $1 OR lp.posted_by = $1
+      ORDER BY pn.livestock_post_id, pn.created_at DESC
+      LIMIT $2 OFFSET $3
+    `,
+
+    getAllMessagesByChat: `
+      SELECT
+        pn.sent_by,
+        pn.message,
+        pn.is_read,
+        pn.created_at,
+        u.name AS sender_name,
+        lp.livestock_post_name
+      FROM purchase_notification pn
+      JOIN app_user u ON pn.sent_by = u.app_user_id
+      JOIN livestock_post lp ON pn.livestock_post_id = lp.livestock_post_id
+      WHERE lp.livestock_post_id = $1
+      ORDER BY pn.created_at DESC
+      LIMIT $2 OFFSET $3
     `,
   },
 });
