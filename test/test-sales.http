@@ -1,0 +1,61 @@
+@baseUrl = http://localhost:3000/api
+@accessToken = REEMPLAZAR_ACCESS_TOKEN_ADMIN
+@purchaseRequestId = REEMPLAZAR_PURCHASE_REQUEST_ID
+@saleId = REEMPLAZAR_SALE_ID
+@sellerId = REEMPLAZAR_SELLER_ID
+@livestockPostId = REEMPLAZAR_LIVESTOCK_POST_ID
+
+###############################################
+# SALES MODULE - FLUJO PRINCIPAL
+###############################################
+
+### 1) Esta petición aprueba la compra (purchase_status_id = 2) y dispara la creación automática de venta.
+PATCH {{baseUrl}}/purchase/{{purchaseRequestId}}
+Content-Type: application/json
+
+{
+  "purchaseStatusId": 2
+}
+
+### 2) Esta petición lista ventas con paginación limit-offset.
+GET {{baseUrl}}/sales?limit=10&offset=0
+Authorization: Bearer {{accessToken}}
+
+### 3) Esta petición lista ventas filtrando por vendedor.
+GET {{baseUrl}}/sales?sellerId={{sellerId}}&limit=10&offset=0
+Authorization: Bearer {{accessToken}}
+
+### 4) Esta petición lista ventas filtrando por producto (livestock_post_id).
+GET {{baseUrl}}/sales?livestockPostId={{livestockPostId}}&limit=10&offset=0
+Authorization: Bearer {{accessToken}}
+
+### 5) Esta petición obtiene una venta específica por sale_id.
+GET {{baseUrl}}/sales/{{saleId}}
+Authorization: Bearer {{accessToken}}
+
+### 6) Esta petición actualiza una venta (solo administrador).
+PATCH {{baseUrl}}/sales/{{saleId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "quantity": 3
+}
+
+### 7) Esta petición elimina una venta (solo administrador).
+DELETE {{baseUrl}}/sales/{{saleId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################
+# APOYO (OPCIONAL)
+###############################################
+
+### 8) Esta petición obtiene un access token para pruebas (copiar access_token en @accessToken).
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "REEMPLAZAR_EMAIL",
+  "password": "REEMPLAZAR_PASSWORD",
+  "remember_me": false
+}

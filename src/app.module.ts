@@ -9,6 +9,7 @@ import { LivestockPostsModule } from './modules/posts/posts.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { SalesModule } from './modules/sales/sales.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     PurchaseModule,
     LivestockPostsModule,
     NotificationsModule,
+    SalesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

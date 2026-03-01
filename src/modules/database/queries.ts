@@ -2,6 +2,16 @@ import { createQueries } from '@crane-technologies/database';
 
 export const queries = createQueries({
   users: {
+    findAll: 'SELECT * FROM app_user ORDER BY created_at DESC',
+
+    findByNameAndSurname: `
+      SELECT *
+      FROM app_user
+      WHERE first_name ILIKE $1
+        AND surname ILIKE $2
+      ORDER BY created_at DESC
+    `,
+
     findByEmail: 'SELECT * FROM app_user WHERE email = $1',
 
     findById: 'SELECT * FROM app_user WHERE app_user_id = $1',
@@ -18,6 +28,12 @@ export const queries = createQueries({
         is_verified = COALESCE($4, is_verified),
         updated_at = CURRENT_TIMESTAMP
       WHERE app_user_id = $5
+      RETURNING *
+    `,
+
+    delete: `
+      DELETE FROM app_user
+      WHERE app_user_id = $1
       RETURNING *
     `,
 
@@ -164,6 +180,105 @@ export const queries = createQueries({
       message
     )
     VALUES ($1, $2, $3, $4)
+  `,
+
+    updatePurchaseRequest: `
+    UPDATE purchase_request
+    SET
+      purchase_status_id = COALESCE($1, purchase_status_id),
+      requested_quantity = COALESCE($2, requested_quantity),
+      message = COALESCE($3, message),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE purchase_request_id = $4
+    RETURNING *
+  `,
+  },
+
+  sales: {
+    findAll: `
+    SELECT *
+    FROM sale s
+    WHERE ($1::uuid IS NULL OR s.sale_id = $1)
+      AND ($2::uuid IS NULL OR s.seller_id = $2)
+      AND ($3::uuid IS NULL OR s.livestock_post_id = $3)
+      AND ($4::uuid IS NULL OR s.buyer_id = $4)
+      AND ($5::uuid IS NULL OR (s.seller_id = $5 OR s.buyer_id = $5))
+    ORDER BY s.created_at DESC
+    LIMIT $6 OFFSET $7
+  `,
+
+    countAll: `
+    SELECT COUNT(*)::INTEGER AS total
+    FROM sale s
+    WHERE ($1::uuid IS NULL OR s.sale_id = $1)
+      AND ($2::uuid IS NULL OR s.seller_id = $2)
+      AND ($3::uuid IS NULL OR s.livestock_post_id = $3)
+      AND ($4::uuid IS NULL OR s.buyer_id = $4)
+      AND ($5::uuid IS NULL OR (s.seller_id = $5 OR s.buyer_id = $5))
+  `,
+
+    findById: `
+    SELECT *
+    FROM sale
+    WHERE sale_id = $1
+  `,
+
+    updateById: `
+    UPDATE sale
+    SET
+      quantity = COALESCE($1, quantity),
+      total_weight_kg = COALESCE($2, total_weight_kg),
+      price_per_kg = COALESCE($3, price_per_kg),
+      price_per_unit = COALESCE($4, price_per_unit),
+      commission_percentage = COALESCE($5, commission_percentage),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE sale_id = $6
+    RETURNING *
+  `,
+
+    deleteById: `
+    DELETE FROM sale
+    WHERE sale_id = $1
+    RETURNING *
+  `,
+
+    createFromApprovedPurchase: `
+    INSERT INTO sale (
+      purchase_request_id,
+      livestock_post_id,
+      seller_id,
+      buyer_id,
+      sale_type_id,
+      quantity,
+      total_weight_kg,
+      price_per_kg,
+      price_per_unit
+    )
+    SELECT
+      pr.purchase_request_id,
+      pr.livestock_post_id,
+      lp.posted_by,
+      pr.potential_buyer,
+      lp.sale_type_id,
+      pr.requested_quantity,
+      CASE
+        WHEN lp.sale_type_id = 1 THEN lp.avg_weight_kg * pr.requested_quantity
+        ELSE NULL
+      END AS total_weight_kg,
+      CASE
+        WHEN lp.sale_type_id = 1 THEN lp.price_per_kg
+        ELSE NULL
+      END AS price_per_kg,
+      CASE
+        WHEN lp.sale_type_id = 2 THEN lp.price_per_unit
+        ELSE NULL
+      END AS price_per_unit
+    FROM purchase_request pr
+    INNER JOIN livestock_post lp ON lp.livestock_post_id = pr.livestock_post_id
+    WHERE pr.purchase_request_id = $1
+      AND pr.purchase_status_id = 2
+    ON CONFLICT (purchase_request_id) DO NOTHING
+    RETURNING *
   `,
   },
 
