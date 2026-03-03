@@ -38,17 +38,10 @@ export class AuthController {
   })
   @ApiResponse({ status: 409, description: 'El email ya está registrado' })
   @ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
-  async register(@Body() registerDto: RegisterDto): Promise<{
-    statusCode: number;
-    message: string;
-    data: { userId: string; message: string };
-  }> {
-    const result = await this.authService.register(registerDto);
-    return {
-      statusCode: 201,
-      message: result.message,
-      data: result,
-    };
+  async register(
+    @Body() registerDto: RegisterDto,
+  ): Promise<{ userId: string; message: string }> {
+    return this.authService.register(registerDto);
   }
 
   @Post('verify-email')
@@ -67,15 +60,8 @@ export class AuthController {
     description: 'Código inválido, expirado o ya utilizado',
   })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  async verifyEmail(
-    @Body() dto: VerifyEmailDto,
-  ): Promise<{ statusCode: number; message: string; data: AuthResponse }> {
-    const result = await this.authService.verifyEmail(dto);
-    return {
-      statusCode: 200,
-      message: 'Email verified successfully',
-      data: result,
-    };
+  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<AuthResponse> {
+    return this.authService.verifyEmail(dto);
   }
 
   @Post('resend-verification')
@@ -90,12 +76,8 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async resendVerification(
     @Body() dto: ResendVerificationDto,
-  ): Promise<{ statusCode: number; message: string }> {
-    const result = await this.authService.resendVerification(dto.email);
-    return {
-      statusCode: 200,
-      message: result.message,
-    };
+  ): Promise<{ message: string }> {
+    return this.authService.resendVerification(dto.email);
   }
 
   @Post('login')
@@ -109,18 +91,8 @@ export class AuthController {
     description: 'Login exitoso, retorna access_token y refresh_token',
   })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
-  async login(@Body() loginDto: LoginDto): Promise<{
-    statusCode: number;
-    message: string;
-    data: AuthResponse;
-  }> {
-    const result = await this.authService.login(loginDto);
-
-    return {
-      statusCode: 200,
-      message: 'Login successful',
-      data: result,
-    };
+  async login(@Body() loginDto: LoginDto): Promise<AuthResponse> {
+    return this.authService.login(loginDto);
   }
 
   @Post('refresh')
@@ -134,36 +106,26 @@ export class AuthController {
     status: 401,
     description: 'Refresh token inválido, expirado o revocado',
   })
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<{
-    statusCode: number;
-    message: string;
-    data: TokensResponse;
-  }> {
-    const tokens = await this.authService.refresh(
-      refreshTokenDto.refresh_token,
-    );
-
-    return {
-      statusCode: 200,
-      message: 'Token refreshed successfully',
-      data: tokens,
-    };
+  async refresh(
+    @Body() refreshTokenDto: RefreshTokenDto,
+  ): Promise<TokensResponse> {
+    return this.authService.refresh(refreshTokenDto.refresh_token);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  async logout(@CurrentUser() user): Promise<{
-    statusCode: number;
-    message: string;
-  }> {
-    const userId = user.app_user_id;
-    await this.authService.logout(userId);
-
-    return {
-      statusCode: 200,
-      message: 'Logged out successfully',
-    };
+  @ApiOperation({
+    summary: 'Cerrar sesión',
+    description: 'Revoca todos los refresh tokens del usuario autenticado',
+  })
+  @ApiResponse({ status: 200, description: 'Sesión cerrada exitosamente' })
+  @ApiResponse({
+    status: 401,
+    description: 'Token de acceso inválido o expirado',
+  })
+  async logout(@CurrentUser() user): Promise<{ message: string }> {
+    return this.authService.logout(user.app_user_id);
   }
 
   @Get('me')
@@ -179,10 +141,6 @@ export class AuthController {
     description: 'Token de acceso inválido o expirado',
   })
   getMe(@CurrentUser() user) {
-    return {
-      statusCode: 200,
-      message: 'Current user information',
-      data: user,
-    };
+    return user;
   }
 }

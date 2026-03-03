@@ -1,4 +1,4 @@
-import { User } from '../../users/users.service';
+import { UserPayload } from './tokens-response.interface';
 
 export interface TokensResponse {
   access_token: string;
@@ -6,6 +6,6 @@ export interface TokensResponse {
 }
 
 export interface AuthResponse {
-  user: Partial<User>;
+  user: UserPayload;
   tokens: TokensResponse;
 }
