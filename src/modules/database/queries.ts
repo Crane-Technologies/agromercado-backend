@@ -166,6 +166,27 @@ export const queries = createQueries({
   },
 
   posts: {
+    searchLivestockPosts: `
+      SELECT *
+      FROM search_livestock_posts(
+        $1,   -- p_search_term
+        $2,   -- p_min_relevance
+        $3,   -- p_limit
+        $4,   -- p_offset
+        $5,   -- p_township_id
+        $6,   -- p_state_id
+        $7,   -- p_min_weight
+        $8,   -- p_max_weight
+        $9,   -- p_min_price_per_kg
+        $10,  -- p_max_price_per_kg
+        $11,  -- p_min_price_per_unit
+        $12,  -- p_max_price_per_unit
+        $13,  -- p_livestock_type_id
+        $14,  -- p_sector_id
+        $15   -- p_sex
+      )
+    `,
+
     createLivestockPost: `
     INSERT INTO livestock_post (
       livestock_type_id,
