@@ -20,11 +20,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private usersService: UsersService,
   ) {
     const secret = configService.get<string>('JWT_ACCESS_SECRET');
-    
+
     if (!secret) {
       throw new Error('JWT_ACCESS_SECRET is not defined in .env');
     }
-    
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -46,7 +46,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     // 4. Retornar el usuario (sin password_hash)
     const { password_hash, ...userWithoutPassword } = user;
-    
+
     return userWithoutPassword;
   }
 }

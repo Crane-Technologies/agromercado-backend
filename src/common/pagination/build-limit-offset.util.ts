@@ -7,11 +7,7 @@ export interface LimitOffset {
   offset: number;
 }
 
-// Normaliza limit/offset para evitar valores negativos o páginas demasiado grandes.
-export function buildLimitOffset(
-  limit?: number,
-  offset?: number,
-): LimitOffset {
+export function buildLimitOffset(limit?: number, offset?: number): LimitOffset {
   const normalizedLimit =
     typeof limit === 'number' && Number.isFinite(limit) && limit > 0
       ? Math.min(Math.floor(limit), MAX_LIMIT)

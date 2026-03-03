@@ -153,20 +153,12 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Cerrar sesión',
-    description: 'Revoca todos los refresh tokens del usuario autenticado',
-  })
-  @ApiResponse({ status: 200, description: 'Sesión cerrada exitosamente' })
-  @ApiResponse({
-    status: 401,
-    description: 'Token de acceso inválido o expirado',
-  })
   async logout(@CurrentUser() user): Promise<{
     statusCode: number;
     message: string;
   }> {
-    await this.authService.logout(user.app_user_id);
+    const userId = user.app_user_id;
+    await this.authService.logout(userId);
 
     return {
       statusCode: 200,
