@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
@@ -55,6 +55,13 @@ export class EmailService {
       },
     });
 
-    await this.sesClient.send(command);
+    try {
+      await this.sesClient.send(command);
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      throw new InternalServerErrorException(
+        'Failed to send verification email',
+      );
+    }
   }
 }

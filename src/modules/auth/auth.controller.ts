@@ -5,6 +5,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from '../users/dto/register.dto';
@@ -20,10 +21,12 @@ import { CurrentUser } from './decorators/current-user.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 600_000 } })
   @ApiOperation({
     summary: 'Registrar nuevo usuario',
     description:
@@ -49,6 +52,7 @@ export class AuthController {
   }
 
   @Post('verify-email')
+  @Throttle({ default: { limit: 10, ttl: 300_000 } })
   @ApiOperation({
     summary: 'Verificar email con código de 6 dígitos',
     description:
@@ -75,6 +79,7 @@ export class AuthController {
   }
 
   @Post('resend-verification')
+  @Throttle({ default: { limit: 5, ttl: 600_000 } })
   @ApiOperation({
     summary: 'Reenviar código de verificación',
     description:
@@ -93,8 +98,8 @@ export class AuthController {
     };
   }
 
-  // Login con email + password
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Iniciar sesión',
     description: 'Autentica al usuario con email y contraseña',
@@ -118,8 +123,8 @@ export class AuthController {
     };
   }
 
-  // Refresh Token
   @Post('refresh')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Renovar token de acceso',
     description: 'Genera un nuevo access_token usando el refresh_token',
@@ -145,7 +150,6 @@ export class AuthController {
     };
   }
 
-  // LOGOUT (revoca todos los refresh tokens del usuario)
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
@@ -162,7 +166,7 @@ export class AuthController {
     statusCode: number;
     message: string;
   }> {
-    await this.authService.logout(user.app_user_id); // ← Extraer el UUID aquí
+    await this.authService.logout(user.app_user_id);
 
     return {
       statusCode: 200,
@@ -170,7 +174,6 @@ export class AuthController {
     };
   }
 
-  // Endpoint para obtener la información del usuario actual (protegido por JWT)
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')

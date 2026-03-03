@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './modules/database/database.module';
@@ -18,6 +19,13 @@ import { SalesModule } from './modules/sales/sales.module';
       envFilePath: '.env',
       cache: true,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 60,
+      },
+    ]),
     DatabaseModule,
     AuthModule,
     UsersModule,
