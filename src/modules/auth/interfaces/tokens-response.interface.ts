@@ -1,8 +1,3 @@
-export interface TokensResponse {
-  access_token: string;
-  refresh_token: string;
-}
-
 // Interfaz UserPayload para incluir la información importante del usuario, sin exponer datos sensibles (password)
 // Es mejor llamar al user con este payload que hacer un return del user desde la BBDD.
 export interface UserPayload {
@@ -13,16 +8,6 @@ export interface UserPayload {
   document_type: string;
   document_number: number;
   is_verified: boolean;
-}
-
-// Interfaz para la respuesta de autenticación, útil para el manejo de respuesta/excepciones en el controlador.
-export interface AuthResponse {
-  statusCode: number;
-  message: string;
-  data: {
-    user: UserPayload;
-    tokens: TokensResponse;
-  };
 }
 
 export interface RefreshToken {
