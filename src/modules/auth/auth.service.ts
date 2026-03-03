@@ -131,9 +131,6 @@ export class AuthService {
     return { message: 'New verification code sent' };
   }
 
-  /**
-   * LOGIN DE USUARIO
-   */
   async login(loginDto: LoginDto): Promise<AuthResponse> {
     try {
       // 1. Validar credenciales
@@ -261,9 +258,7 @@ export class AuthService {
       throw new DatabaseException('refresh token');
     }
   }
-  /**
-   * VALIDAR CREDENCIALES (usado en login)
-   */
+
   private async validateUser(
     email: string,
     password: string,
@@ -290,10 +285,7 @@ export class AuthService {
     }
   }
 
-  /**
-   * GENERAR ACCESS TOKEN
-   */
-  private async generateAccessToken(user: User): Promise<string> {
+  private generateAccessToken(user: User): string {
     const payload: JwtPayload = {
       sub: user.app_user_id,
       email: user.email,
@@ -306,13 +298,7 @@ export class AuthService {
     });
   }
 
-  /**
-   * GENERAR REFRESH TOKEN
-   */
-  private async generateRefreshToken(
-    user: User,
-    rememberMe: boolean,
-  ): Promise<string> {
+  private generateRefreshToken(user: User, rememberMe: boolean): string {
     const payload: JwtPayload = {
       sub: user.app_user_id,
       email: user.email,
