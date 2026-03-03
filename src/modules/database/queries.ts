@@ -2,7 +2,10 @@ import { createQueries } from '@crane-technologies/database';
 
 export const queries = createQueries({
   users: {
-    findAll: 'SELECT * FROM app_user ORDER BY created_at DESC',
+    findAll:
+      'SELECT * FROM app_user ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+
+    countAll: 'SELECT COUNT(*)::INTEGER AS total FROM app_user',
 
     findByNameAndSurname: `
       SELECT *
@@ -71,9 +74,22 @@ export const queries = createQueries({
     `,
 
     deleteExpiredTokens: `
-      DELETE FROM refresh_token 
+      DELETE FROM refresh_token
       WHERE expires_at < NOW()
     `,
+
+    findVerificationCode: `
+      SELECT verification_code_id, is_used, expires_at
+      FROM verification_code
+      WHERE app_user_id = $1
+        AND code = $2
+        AND verification_type = 'email'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+
+    insertVerificationCode:
+      'SELECT insert_verification_code($1, $2, $3) AS verification_code_id',
   },
   aws: {
     insertLivestockPostFile: `
