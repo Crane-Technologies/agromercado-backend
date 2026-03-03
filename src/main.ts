@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/ResponseFormatter.interceptor';
 
@@ -22,6 +23,19 @@ async function bootstrap() {
       disableErrorMessages: false,
     }),
   );
+
+  const config = new DocumentBuilder()
+    .setTitle('Agrodil API')
+    .setDescription('API del marketplace ganadero Agrodil')
+    .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'access-token',
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
 }

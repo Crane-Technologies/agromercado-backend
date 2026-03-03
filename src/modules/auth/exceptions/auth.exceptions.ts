@@ -89,3 +89,58 @@ export class TokenNotFoundException extends UnauthorizedException {
     });
   }
 }
+
+// Excepción para email no verificado
+export class EmailNotVerifiedException extends UnauthorizedException {
+  constructor() {
+    super({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      message: 'Email not verified. Please check your inbox and verify your account.',
+      error: 'Email Not Verified',
+    });
+  }
+}
+
+// Excepción para código de verificación inválido
+export class InvalidVerificationCodeException extends BadRequestException {
+  constructor() {
+    super({
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'Invalid verification code',
+      error: 'Invalid Verification Code',
+    });
+  }
+}
+
+// Excepción para código de verificación expirado
+export class VerificationCodeExpiredException extends BadRequestException {
+  constructor() {
+    super({
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'Verification code has expired',
+      error: 'Verification Code Expired',
+    });
+  }
+}
+
+// Excepción para código de verificación ya utilizado
+export class VerificationCodeAlreadyUsedException extends BadRequestException {
+  constructor() {
+    super({
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'Verification code has already been used',
+      error: 'Verification Code Already Used',
+    });
+  }
+}
+
+// Excepción para usuario ya verificado
+export class UserAlreadyVerifiedException extends BadRequestException {
+  constructor() {
+    super({
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'User is already verified',
+      error: 'User Already Verified',
+    });
+  }
+}

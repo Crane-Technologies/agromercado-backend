@@ -2,7 +2,10 @@ import { createQueries } from '@crane-technologies/database';
 
 export const queries = createQueries({
   users: {
-    findAll: 'SELECT * FROM app_user ORDER BY created_at DESC',
+    findAll:
+      'SELECT * FROM app_user ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+
+    countAll: 'SELECT COUNT(*)::INTEGER AS total FROM app_user',
 
     findByNameAndSurname: `
       SELECT *
@@ -71,9 +74,22 @@ export const queries = createQueries({
     `,
 
     deleteExpiredTokens: `
-      DELETE FROM refresh_token 
+      DELETE FROM refresh_token
       WHERE expires_at < NOW()
     `,
+
+    findVerificationCode: `
+      SELECT verification_code_id, is_used, expires_at
+      FROM verification_code
+      WHERE app_user_id = $1
+        AND code = $2
+        AND verification_type = 'email'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+
+    insertVerificationCode:
+      'SELECT insert_verification_code($1, $2, $3) AS verification_code_id',
   },
   aws: {
     insertLivestockPostFile: `
@@ -150,6 +166,27 @@ export const queries = createQueries({
   },
 
   posts: {
+    searchLivestockPosts: `
+      SELECT *
+      FROM search_livestock_posts(
+        $1,   -- p_search_term
+        $2,   -- p_min_relevance
+        $3,   -- p_limit
+        $4,   -- p_offset
+        $5,   -- p_township_id
+        $6,   -- p_state_id
+        $7,   -- p_min_weight
+        $8,   -- p_max_weight
+        $9,   -- p_min_price_per_kg
+        $10,  -- p_max_price_per_kg
+        $11,  -- p_min_price_per_unit
+        $12,  -- p_max_price_per_unit
+        $13,  -- p_livestock_type_id
+        $14,  -- p_sector_id
+        $15   -- p_sex
+      )
+    `,
+
     createLivestockPost: `
     INSERT INTO livestock_post (
       livestock_type_id,

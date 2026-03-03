@@ -4,6 +4,8 @@ import {
   UpdateLivestockPostDto,
   UploadLivestockPostResponseDto,
 } from './dto';
+import { SearchLivestockPostsQueryDto } from './dto/request/search-livestock-posts.query.dto';
+import { LivestockPostSearchResult } from './posts.repository';
 
 import { LivestockPostsRepository } from './posts.repository';
 import { AwsService } from '../aws/aws.service';
@@ -74,6 +76,21 @@ export class LivestockPostsService {
 
   async getAll() {
     return `This action returns all posts`;
+  }
+
+  async search(dto: SearchLivestockPostsQueryDto): Promise<{
+    items: LivestockPostSearchResult[];
+    pagination: { limit: number; offset: number; hasMore: boolean };
+  }> {
+    try {
+      return await this.postsRepository.searchLivestockPosts(dto);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error instanceof Error
+          ? error.message
+          : 'Failed to search livestock posts',
+      );
+    }
   }
 
   async findOne(id: number) {

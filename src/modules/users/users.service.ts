@@ -10,6 +10,10 @@ import {
 } from '../auth/exceptions/auth.exceptions';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  buildLimitOffset,
+  LimitOffset,
+} from '../../common/pagination/build-limit-offset.util';
 
 export interface User {
   app_user_id: string;
@@ -35,10 +39,41 @@ export interface User {
 export class UsersService {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  async getAll(): Promise<User[]> {
+  async getAll(pagination?: LimitOffset): Promise<{
+    items: Omit<User, 'password_hash'>[];
+    pagination: {
+      limit: number;
+      offset: number;
+      total: number;
+      hasMore: boolean;
+    };
+  }> {
     try {
-      const result = await this.db.query(queries.users.findAll);
-      return result.rows as User[];
+      const { limit, offset } = buildLimitOffset(
+        pagination?.limit,
+        pagination?.offset,
+      );
+
+      const [rowsResult, countResult] = await Promise.all([
+        this.db.query(queries.users.findAll, [limit, offset]),
+        this.db.query(queries.users.countAll),
+      ]);
+
+      const total = Number(countResult.rows[0]?.total ?? 0);
+      const items = rowsResult.rows.map(
+        /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+        ({ password_hash: _ph, ...safeUser }: User) => safeUser,
+      );
+
+      return {
+        items,
+        pagination: {
+          limit,
+          offset,
+          total,
+          hasMore: offset + items.length < total,
+        },
+      };
     } catch (error) {
       throw new DatabaseException('getAll users');
     }
@@ -79,22 +114,18 @@ export class UsersService {
 
   async create(registerDto: RegisterDto): Promise<User> {
     try {
-      // 1. Verificar que el email no exista
       const emailExists = await this.emailExists(registerDto.email);
       if (emailExists) {
         throw new UserAlreadyExistsException(registerDto.email);
       }
 
-      // 2. Verificar que el teléfono no exista
       const phoneExists = await this.phoneExists(registerDto.phone);
       if (phoneExists) {
         throw new DatabaseException('Phone number already exists');
       }
 
-      // 3. Encriptar password
-      const password_hash = await bcrypt.hash(registerDto.password, 10);
+      const password_hash = await bcrypt.hash(registerDto.password, 12);
 
-      // 4. Llamar a la función de BD
       const result = await this.db.query(queries.users.create, [
         registerDto.email,
         registerDto.phone,
@@ -102,7 +133,7 @@ export class UsersService {
         registerDto.document_type,
         registerDto.document_number,
         registerDto.township_id || null,
-        1, // role_id por defecto
+        1,
         registerDto.first_name || null,
         registerDto.middle_name || null,
         registerDto.surname || null,
@@ -111,11 +142,8 @@ export class UsersService {
         registerDto.company_name || null,
       ]);
 
-      // 5. Buscar usuario completo
       const userId = result.rows[0].app_user_id;
-
       const user = await this.findById(userId);
-
 
       if (!user) {
         throw new DatabaseException('User created but not found');
@@ -124,23 +152,32 @@ export class UsersService {
       return user;
     } catch (error: any) {
       console.error('Error creating user:', error);
-      
-      if (error instanceof UserAlreadyExistsException || error instanceof DatabaseException) {
+
+      if (
+        error instanceof UserAlreadyExistsException ||
+        error instanceof DatabaseException
+      ) {
         throw error;
       }
 
       if (error.message?.includes('already exists')) {
-        throw new DatabaseException('User with this email, phone, or document number already exists');
+        throw new DatabaseException(
+          'User with this email, phone, or document number already exists',
+        );
       }
-      
+
       if (error.message?.includes('Company name is required')) {
-        throw new DatabaseException('Company name is required for legal entities');
+        throw new DatabaseException(
+          'Company name is required for legal entities',
+        );
       }
-      
+
       if (error.message?.includes('First name and surname are required')) {
-        throw new DatabaseException('First name and surname are required for natural persons');
+        throw new DatabaseException(
+          'First name and surname are required for natural persons',
+        );
       }
-      
+
       throw new DatabaseException(`create user: ${error.message}`);
     }
   }
@@ -148,7 +185,7 @@ export class UsersService {
   async update(uuid: string, data: UpdateUserDto): Promise<User> {
     try {
       const passwordHash = data.password
-        ? await bcrypt.hash(data.password, 10)
+        ? await bcrypt.hash(data.password, 12)
         : null;
 
       const result = await this.db.query(queries.users.update, [
@@ -196,7 +233,7 @@ export class UsersService {
       ]);
       return result.rows[0].exists;
     } catch (error) {
-      throw new DatabaseException('check email exists');
+      throw new UserAlreadyExistsException('check email exists');
     }
   }
 
@@ -207,7 +244,7 @@ export class UsersService {
       ]);
       return result.rows[0].exists;
     } catch (error) {
-      throw new DatabaseException('check phone exists');
+      throw new UserAlreadyExistsException('check phone exists');
     }
   }
 }

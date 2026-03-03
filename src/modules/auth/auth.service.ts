@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { DATABASE } from '../database/database.provider';
 import Database from '@crane-technologies/database';
 import { queries } from '../database/queries';
@@ -11,13 +12,21 @@ import {
   DatabaseException,
   RefreshTokenRevokedException,
   InvalidTokenException,
+  EmailNotVerifiedException,
+  InvalidVerificationCodeException,
+  VerificationCodeExpiredException,
+  VerificationCodeAlreadyUsedException,
+  UserAlreadyVerifiedException,
 } from './exceptions/auth.exceptions';
 import { UsersService, User } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from '../users/dto/register.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import {
   TokensResponse,
   AuthResponse,
 } from './interfaces/auth-response.interface';
+import { EmailService } from '../email/email.service';
 
 interface JwtPayload {
   sub: string;
@@ -32,7 +41,95 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
+
+  async register(
+    registerDto: RegisterDto,
+  ): Promise<{ userId: string; message: string }> {
+    const user = await this.usersService.create(registerDto);
+    const userId: string = user.app_user_id;
+    const code = crypto.randomInt(100000, 999999).toString();
+
+    await Promise.all([
+      this.db.query(queries.auth.insertVerificationCode, [
+        userId,
+        code,
+        'email',
+      ]),
+      this.emailService.sendVerificationCode(registerDto.email, code),
+    ]);
+
+    return {
+      userId,
+      message: 'Account created. Please verify your email.',
+    };
+  }
+
+  async verifyEmail(dto: VerifyEmailDto): Promise<AuthResponse> {
+    const result = await this.db.query(queries.auth.findVerificationCode, [
+      dto.userId,
+      dto.code,
+    ]);
+
+    if (result.rows.length === 0) {
+      throw new InvalidVerificationCodeException();
+    }
+
+    const record = result.rows[0];
+
+    if (record.is_used) {
+      throw new VerificationCodeAlreadyUsedException();
+    }
+
+    if (new Date(record.expires_at) < new Date()) {
+      throw new VerificationCodeExpiredException();
+    }
+
+    await this.db.query('CALL verify_and_mark_user($1, $2)', [
+      record.verification_code_id,
+      dto.userId,
+    ]);
+
+    const user = await this.usersService.findById(dto.userId);
+
+    if (!user) {
+      throw new UserNotFoundException(dto.userId);
+    }
+
+    const tokens = await this.generateTokens(user, false);
+    await this.saveRefreshToken(user.app_user_id, tokens.refresh_token, false);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password_hash: _ph, ...userWithoutPassword } = user;
+
+    return { user: userWithoutPassword, tokens };
+  }
+
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const user = await this.usersService.findByEmail(email);
+
+    if (!user) {
+      throw new UserNotFoundException(email);
+    }
+
+    if (user.is_verified) {
+      throw new UserAlreadyVerifiedException();
+    }
+
+    const code = crypto.randomInt(100000, 999999).toString();
+
+    await Promise.all([
+      this.db.query(queries.auth.insertVerificationCode, [
+        user.app_user_id,
+        code,
+        'email',
+      ]),
+      this.emailService.sendVerificationCode(email, code),
+    ]);
+
+    return { message: 'New verification code sent' };
+  }
 
   /**
    * LOGIN DE USUARIO
@@ -46,20 +143,25 @@ export class AuthService {
         throw new InvalidCredentialsException();
       }
 
-      // 2. Generar tokens
+      // 2. Verificar que el email esté verificado
+      if (!user.is_verified) {
+        throw new EmailNotVerifiedException();
+      }
+
+      // 3. Generar tokens
       const tokens = await this.generateTokens(
         user,
         loginDto.remember_me || false,
       );
 
-      // 3. Guardar refresh token en BD
+      // 4. Guardar refresh token en BD
       await this.saveRefreshToken(
         user.app_user_id,
         tokens.refresh_token,
         loginDto.remember_me || false,
       );
 
-      // 4. Retornar usuario (sin password_hash) y tokens
+      // 5. Retornar usuario (sin password_hash) y tokens
       const { password_hash: _, ...userWithoutPassword } = user;
 
       return {
@@ -67,7 +169,10 @@ export class AuthService {
         tokens,
       };
     } catch (error) {
-      if (error instanceof InvalidCredentialsException) {
+      if (
+        error instanceof InvalidCredentialsException ||
+        error instanceof EmailNotVerifiedException
+      ) {
         throw error;
       }
       throw new DatabaseException('login');
@@ -79,9 +184,7 @@ export class AuthService {
    */
   async logout(userId: string): Promise<{ message: string }> {
     try {
-      const result = await this.db.query(queries.auth.revokeAllUserTokens, [
-        userId,
-      ]);
+      await this.db.query(queries.auth.revokeAllUserTokens, [userId]);
 
       return { message: 'Logged out successfully' };
     } catch (error: any) {
