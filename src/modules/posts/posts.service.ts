@@ -1,13 +1,20 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   UploadLivestockPostDto,
   UpdateLivestockPostDto,
   UploadLivestockPostResponseDto,
 } from './dto';
 import { SearchLivestockPostsQueryDto } from './dto/request/search-livestock-posts.query.dto';
-import { LivestockPostSearchResult } from './posts.repository';
-
-import { LivestockPostsRepository } from './posts.repository';
+import { GetAllPostsQueryDto } from './dto/request/get-all-posts.query.dto';
+import {
+  LivestockPost,
+  LivestockPostSearchResult,
+  LivestockPostsRepository,
+} from './posts.repository';
 import { AwsService } from '../aws/aws.service';
 
 @Injectable()
@@ -74,8 +81,24 @@ export class LivestockPostsService {
     }
   }
 
-  async getAll() {
-    return `This action returns all posts`;
+  async getAll(dto: GetAllPostsQueryDto): Promise<{
+    items: LivestockPost[];
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+      hasMore: boolean;
+    };
+  }> {
+    try {
+      return await this.postsRepository.getAll(dto);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch livestock posts',
+      );
+    }
   }
 
   async search(dto: SearchLivestockPostsQueryDto): Promise<{
@@ -93,15 +116,30 @@ export class LivestockPostsService {
     }
   }
 
-  async findOne(id: number) {
-    return `This action returns a #${id} post`;
+  async getById(id: string): Promise<LivestockPost> {
+    const post = await this.postsRepository.getById(id);
+    if (!post) {
+      throw new NotFoundException(`Livestock post ${id} not found`);
+    }
+    return post;
   }
 
-  async update(id: number, updateLivestockPostDto: UpdateLivestockPostDto) {
-    return `This action updates a #${id} post`;
+  async update(
+    id: string,
+    updateLivestockPostDto: UpdateLivestockPostDto,
+  ): Promise<LivestockPost> {
+    const post = await this.postsRepository.update(id, updateLivestockPostDto);
+    if (!post) {
+      throw new NotFoundException(`Livestock post ${id} not found`);
+    }
+    return post;
   }
 
-  async remove(id: number) {
-    return `This action removes a #${id} post`;
+  async remove(id: string): Promise<LivestockPost> {
+    const post = await this.postsRepository.remove(id);
+    if (!post) {
+      throw new NotFoundException(`Livestock post ${id} not found`);
+    }
+    return post;
   }
 }

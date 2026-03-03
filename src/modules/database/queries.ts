@@ -206,6 +206,50 @@ export const queries = createQueries({
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING livestock_post_id;
   `,
+
+    getAll: `
+    SELECT *
+    FROM livestock_post
+    ORDER BY created_at DESC
+    LIMIT $1 OFFSET $2
+  `,
+
+    countAll: `
+    SELECT COUNT(*)::INTEGER AS total
+    FROM livestock_post
+  `,
+
+    getById: `
+    SELECT *
+    FROM livestock_post
+    WHERE livestock_post_id = $1
+  `,
+
+    update: `
+    UPDATE livestock_post
+    SET
+      livestock_type_id  = COALESCE($1,  livestock_type_id),
+      livestock_post_name = COALESCE($2, livestock_post_name),
+      breed_id           = COALESCE($3,  breed_id),
+      sector_id          = COALESCE($4,  sector_id),
+      sale_type_id       = COALESCE($5,  sale_type_id),
+      sex                = COALESCE($6,  sex),
+      quantity           = COALESCE($7,  quantity),
+      avg_weight_kg      = COALESCE($8,  avg_weight_kg),
+      price_per_kg       = COALESCE($9,  price_per_kg),
+      price_per_unit     = COALESCE($10, price_per_unit),
+      township_id        = COALESCE($11, township_id),
+      details            = COALESCE($12, details),
+      updated_at         = CURRENT_TIMESTAMP
+    WHERE livestock_post_id = $13
+    RETURNING *
+  `,
+
+    delete: `
+    UPDATE livestock_post
+    SET is_active = false
+    WHERE livestock_post_id = $1
+  `,
   },
 
   purchase: {

@@ -20,6 +20,7 @@ import {
 import { LivestockPostsService } from './posts.service';
 import { UploadLivestockPostDto, UpdateLivestockPostDto } from './dto';
 import { SearchLivestockPostsQueryDto } from './dto/request/search-livestock-posts.query.dto';
+import { GetAllPostsQueryDto } from './dto/request/get-all-posts.query.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Posts de Ganado')
@@ -61,10 +62,16 @@ export class LivestockPostsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todos los posts de ganado' })
-  @ApiResponse({ status: 200, description: 'Lista de posts de ganado' })
-  getAll() {
-    return this.livestockPostsService.getAll();
+  @ApiOperation({
+    summary: 'Listar todos los posts de ganado',
+    description: 'Retorna posts paginados. Por defecto limit=20, offset=0.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista paginada de posts de ganado',
+  })
+  getAll(@Query() query: GetAllPostsQueryDto) {
+    return this.livestockPostsService.getAll(query);
   }
 
   @Get(':id')
@@ -76,28 +83,36 @@ export class LivestockPostsController {
   })
   @ApiResponse({ status: 200, description: 'Datos del post de ganado' })
   @ApiResponse({ status: 404, description: 'Post no encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.livestockPostsService.findOne(+id);
+  getById(@Param('id') id: string) {
+    return this.livestockPostsService.getById(id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar post de ganado' })
-  @ApiParam({ name: 'id', description: 'ID numérico del post', example: 1 })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID del post',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
   @ApiResponse({ status: 200, description: 'Post actualizado exitosamente' })
   @ApiResponse({ status: 404, description: 'Post no encontrado' })
   update(
     @Param('id') id: string,
     @Body() updateLivestockPostDto: UpdateLivestockPostDto,
   ) {
-    return this.livestockPostsService.update(+id, updateLivestockPostDto);
+    return this.livestockPostsService.update(id, updateLivestockPostDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar post de ganado' })
-  @ApiParam({ name: 'id', description: 'ID numérico del post', example: 1 })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID del post',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
   @ApiResponse({ status: 200, description: 'Post eliminado exitosamente' })
   @ApiResponse({ status: 404, description: 'Post no encontrado' })
   remove(@Param('id') id: string) {
-    return this.livestockPostsService.remove(+id);
+    return this.livestockPostsService.remove(id);
   }
 }
