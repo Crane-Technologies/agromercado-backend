@@ -9,6 +9,7 @@ import {
   Query,
   UploadedFiles,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,12 +17,15 @@ import {
   ApiResponse,
   ApiParam,
   ApiConsumes,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { LivestockPostsService } from './posts.service';
 import { UploadLivestockPostDto, UpdateLivestockPostDto } from './dto';
 import { SearchLivestockPostsQueryDto } from './dto/request/search-livestock-posts.query.dto';
 import { GetAllPostsQueryDto } from './dto/request/get-all-posts.query.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Posts de Ganado')
 @Controller('posts')
@@ -29,6 +33,8 @@ export class LivestockPostsController {
   constructor(private readonly livestockPostsService: LivestockPostsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @UseInterceptors(FilesInterceptor('files', 10))
   @ApiOperation({
     summary: 'Crear post de ganado',
@@ -41,8 +47,9 @@ export class LivestockPostsController {
   async uploadLivestockPost(
     @Body() dto: UploadLivestockPostDto,
     @UploadedFiles() files: Express.Multer.File[],
+    @CurrentUser() user: { app_user_id: string },
   ) {
-    console.log('Received DTO:', dto);
+    dto.post.postedBy = user.app_user_id;
     return await this.livestockPostsService.uploadLivestockPost(dto, files);
   }
 
