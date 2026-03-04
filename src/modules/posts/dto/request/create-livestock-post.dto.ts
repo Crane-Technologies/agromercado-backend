@@ -11,7 +11,11 @@ import {
   IsPositive,
   IsUUID,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiHideProperty,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 import { SexType } from '../../enum/sex-type.enum';
 
 export class CreateLivestockPostDto {
@@ -19,15 +23,20 @@ export class CreateLivestockPostDto {
   @IsInt()
   livestockTypeId!: number;
 
-  @ApiProperty({ example: 'Lote de novillas brahman', minLength: 1, maxLength: 100 })
+  @ApiProperty({
+    example: 'Lote de novillas brahman',
+    minLength: 1,
+    maxLength: 100,
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(100)
   livestockPostName!: string;
 
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'UUID del usuario que publica' })
-  @IsUUID()
-  postedBy!: string;
+  @ApiHideProperty()
+  @IsUUID('4', { message: 'postedBy debe ser un UUID válido' })
+  @IsOptional()
+  postedBy?: string;
 
   @ApiProperty({ example: 2, description: 'ID de la raza' })
   @IsInt()
@@ -50,32 +59,47 @@ export class CreateLivestockPostDto {
   @Min(1)
   quantity!: number;
 
-  @ApiPropertyOptional({ example: 350.5, description: 'Peso promedio en kg (requerido si saleTypeId=1)' })
+  @ApiPropertyOptional({
+    example: 350.5,
+    description: 'Peso promedio en kg (requerido si saleTypeId=1)',
+  })
   @IsNumber()
   @IsOptional()
   @ValidateIf((obj: CreateLivestockPostDto) => obj.saleTypeId === 1)
   @IsPositive()
   avgWeightKg?: number;
 
-  @ApiPropertyOptional({ example: 2.5, description: 'Precio por kg en USD (requerido si saleTypeId=1)' })
+  @ApiPropertyOptional({
+    example: 2.5,
+    description: 'Precio por kg en USD (requerido si saleTypeId=1)',
+  })
   @IsNumber()
   @IsOptional()
   @ValidateIf((obj: CreateLivestockPostDto) => obj.saleTypeId === 1)
   @IsPositive()
   pricePerKg?: number;
 
-  @ApiPropertyOptional({ example: 800, description: 'Precio por unidad en USD (requerido si saleTypeId=2)' })
+  @ApiPropertyOptional({
+    example: 800,
+    description: 'Precio por unidad en USD (requerido si saleTypeId=2)',
+  })
   @IsNumber()
   @IsOptional()
   @ValidateIf((obj: CreateLivestockPostDto) => obj.saleTypeId === 2)
   @IsPositive()
   pricePerUnit?: number;
 
-  @ApiProperty({ example: 5, description: 'ID del municipio donde está el ganado' })
+  @ApiProperty({
+    example: 5,
+    description: 'ID del municipio donde está el ganado',
+  })
   @IsInt()
   townshipId!: number;
 
-  @ApiPropertyOptional({ example: 'Animales sanos, con carnet de vacunación al día.', maxLength: 500 })
+  @ApiPropertyOptional({
+    example: 'Animales sanos, con carnet de vacunación al día.',
+    maxLength: 500,
+  })
   @IsString()
   @IsOptional()
   @MaxLength(500)
