@@ -114,13 +114,17 @@ export class UsersService {
 
   async create(registerDto: RegisterDto): Promise<User> {
     try {
-      const emailExists = await this.emailExists(registerDto.email);
-      if (emailExists) {
+      const existsResult = await this.db.query(
+        queries.users.checkEmailAndPhoneExist,
+        [registerDto.email, registerDto.phone],
+      );
+      const { email_exists, phone_exists } = existsResult.rows[0];
+
+      if (email_exists) {
         throw new UserAlreadyExistsException(registerDto.email);
       }
 
-      const phoneExists = await this.phoneExists(registerDto.phone);
-      if (phoneExists) {
+      if (phone_exists) {
         throw new DatabaseException('Phone number already exists');
       }
 
@@ -142,14 +146,7 @@ export class UsersService {
         registerDto.company_name || null,
       ]);
 
-      const userId = result.rows[0].app_user_id;
-      const user = await this.findById(userId);
-
-      if (!user) {
-        throw new DatabaseException('User created but not found');
-      }
-
-      return user;
+      return result.rows[0] as User;
     } catch (error: any) {
       console.error('Error creating user:', error);
 
