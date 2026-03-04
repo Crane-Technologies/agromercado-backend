@@ -9,7 +9,7 @@ export const queries = createQueries({
 
     findByNameAndSurname: `
       SELECT *
-      FROM app_user
+      FROM person
       WHERE first_name ILIKE $1
         AND surname ILIKE $2
       ORDER BY created_at DESC
