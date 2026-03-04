@@ -111,7 +111,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "juan.perez@example.com",
+  "email": "juan.perez3@example.com",
   "password": "Password123!",
   "remember_me": false
 }

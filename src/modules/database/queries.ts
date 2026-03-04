@@ -20,7 +20,7 @@ export const queries = createQueries({
     findById: 'SELECT * FROM app_user WHERE app_user_id = $1',
 
     create:
-      'SELECT create_app_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) as app_user_id',
+      'SELECT * FROM create_app_user($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
 
     update: `
       UPDATE app_user 
@@ -45,6 +45,12 @@ export const queries = createQueries({
 
     checkPhoneExists:
       'SELECT EXISTS(SELECT 1 FROM app_user WHERE phone = $1) as exists',
+
+    checkEmailAndPhoneExist: `
+      SELECT
+        EXISTS(SELECT 1 FROM app_user WHERE email = $1) AS email_exists,
+        EXISTS(SELECT 1 FROM app_user WHERE phone = $2) AS phone_exists
+    `,
   },
 
   auth: {

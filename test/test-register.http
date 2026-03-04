@@ -1,0 +1,179 @@
+@baseUrl = http://localhost:3000/api
+
+###############################################
+# TEST REGISTRO DE USUARIOS
+# Prueba el stored procedure create_app_user
+# refactorizado para retornar la fila completa.
+#
+# IMPORTANTE: El registro no devuelve tokens.
+# El flujo es: register → verify-email → login.
+###############################################
+
+
+###############################################
+# HAPPY PATH
+###############################################
+
+### 1. Registrar persona (document_type V)
+# Espera 201 con { userId, message }
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "persona.tes3@register.com",
+  "password": "Password123!",
+  "phone": "+584160000089",
+  "document_type": "V",
+  "document_number": 30447567,
+  "township_id": 1,
+  "first_name": "Laura",
+  "middle_name": "Isabel",
+  "surname": "Torres",
+  "second_surname": "Ríos",
+  "birthdate": "1995-06-20"
+}
+
+### 2. Registrar empresa (document_type J)
+# Espera 201 con { userId, message }
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "empresa.test@register.com",
+  "password": "Password123!",
+  "phone": "+584160000002",
+  "document_type": "J",
+  "document_number": 30000002,
+  "township_id": 1,
+  "company_name": "Agro Test C.A."
+}
+
+### 3. Registrar persona sin campos opcionales (middle_name, second_surname, birthdate)
+# Espera 201 con { userId, message }
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "minimal.test@register.com",
+  "password": "Password123!",
+  "phone": "+584160000003",
+  "document_type": "V",
+  "document_number": 30000003,
+  "township_id": 1,
+  "first_name": "Carlos",
+  "surname": "Mendoza"
+}
+
+
+###############################################
+# ERRORES ESPERADOS - VALIDACIÓN DE DATOS
+###############################################
+
+### 4. Persona sin first_name (debe fallar — validación en stored proc)
+# Espera 500 / 400 con mensaje de error del stored proc
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "error1.test@register.com",
+  "password": "Password123!",
+  "phone": "+584160000004",
+  "document_type": "V",
+  "document_number": 30000004,
+  "township_id": 1,
+  "surname": "Solo Apellido"
+}
+
+### 5. Empresa sin company_name (debe fallar — validación en stored proc)
+# Espera 500 / 400 con mensaje de error del stored proc
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "error2.test@register.com",
+  "password": "Password123!",
+  "phone": "+584160000005",
+  "document_type": "J",
+  "document_number": 30000005,
+  "township_id": 1
+}
+
+
+###############################################
+# ERRORES ESPERADOS - DUPLICADOS
+# (Ejecutar después del happy path)
+###############################################
+
+### 6. Email duplicado (debe fallar — 409)
+# Mismo email que el test 1
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "persona.test@register.com",
+  "password": "Password123!",
+  "phone": "+584160000099",
+  "document_type": "V",
+  "document_number": 39999999,
+  "township_id": 1,
+  "first_name": "Otro",
+  "surname": "Usuario"
+}
+
+### 7. Teléfono duplicado (debe fallar)
+# Mismo phone que el test 1
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "otro.test@register.com",
+  "password": "Password123!",
+  "phone": "+584160000001",
+  "document_type": "V",
+  "document_number": 39999998,
+  "township_id": 1,
+  "first_name": "Otro",
+  "surname": "Usuario"
+}
+
+### 8. Email Y teléfono duplicados al mismo tiempo (debe fallar con email primero)
+# Verifica que el check unificado de email+phone retorna el error correcto
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "persona.test@register.com",
+  "password": "Password123!",
+  "phone": "+584160000001",
+  "document_type": "V",
+  "document_number": 39999997,
+  "township_id": 1,
+  "first_name": "Otro",
+  "surname": "Usuario"
+}
+
+
+###############################################
+# VERIFY EMAIL
+# (Completar userId con el del test 1 o 2)
+# Si falla por verificacion de correo: esperado por diseño.
+###############################################
+
+### 9. Verificar email con código recibido
+# Reemplaza userId y code con los valores reales
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "userId": "REEMPLAZAR-CON-UUID-DEL-TEST-1",
+  "code": "REEMPLAZAR-CON-CODIGO-DEL-EMAIL"
+}
+
+### 10. Código inválido (debe fallar)
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "userId": "REEMPLAZAR-CON-UUID-DEL-TEST-1",
+  "code": "000000"
+}
