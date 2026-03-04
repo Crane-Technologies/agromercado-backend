@@ -20,11 +20,11 @@ POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "email": "persona.test@register.com",
+  "email": "persona.tes3@register.com",
   "password": "Password123!",
-  "phone": "+584160000001",
+  "phone": "+584160000089",
   "document_type": "V",
-  "document_number": 30000001,
+  "document_number": 30447567,
   "township_id": 1,
   "first_name": "Laura",
   "middle_name": "Isabel",
