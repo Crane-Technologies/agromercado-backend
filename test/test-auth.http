@@ -92,6 +92,16 @@ Content-Type: application/json
   "birthdate": "1990-01-15"
 }
 
+
+### 1.1 Verificiar usuario
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "userId": "3f922076-d5fd-40be-b2b0-e75aba033986",
+  "code": "622224"
+}
+
 ### 2. Registrar Empresa (document_type J)
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
@@ -131,7 +141,7 @@ POST {{baseUrl}}/auth/refresh
 Content-Type: application/json
 
 {
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNGZmOTFkNC05YWI0LTRkNmMtOTgxZS1kODVhODRjY2U5ZWYiLCJlbWFpbCI6Imp1YW4ucGVyZXpAZXhhbXBsZS5jb20iLCJyb2xlX2lkIjoxLCJpYXQiOjE3NzExODE2MDIsImV4cCI6MTc3MTI2ODAwMn0.XR6SBDtF266NmKt7cE3HlfiikmkPnVsDNDVBo9mXHBQ"
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzZjkyMjA3Ni1kNWZkLTQwYmUtYjJiMC1lNzVhYmEwMzM5ODYiLCJlbWFpbCI6Imp1YW4ucGVyZXozQGV4YW1wbGUuY29tIiwicm9sZV9pZCI6MSwiaWF0IjoxNzcyNjU0MzQzLCJleHAiOjE3NzI3NDA3NDN9.tQqVCnhc1uGAzxb9o0pzSnii4Rb18QQArReppePngss"
 }
 
 ###############################################

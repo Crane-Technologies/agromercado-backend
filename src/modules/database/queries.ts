@@ -62,7 +62,7 @@ export const queries = createQueries({
 
     findRefreshToken: `
       SELECT * FROM refresh_token 
-      WHERE token_hash = $1 
+      WHERE user_id = $1 
         AND revoked = false 
         AND expires_at > NOW()
     `,
